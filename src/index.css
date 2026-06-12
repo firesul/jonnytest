@@ -1,0 +1,494 @@
+/* Design Tokens & Theme Variables */
+:root {
+  --bg-color: #060907;
+  --surface-color: rgba(17, 20, 19, 0.6);
+  --surface-color-solid: #111413;
+  --border-color: rgba(42, 255, 187, 0.1);
+  --border-color-focus: rgba(42, 255, 187, 0.4);
+  
+  --primary-emerald: #004d3d;
+  --primary-emerald-hover: #00604c;
+  --neon-mint: #2affbb;
+  --neon-mint-glow: rgba(42, 255, 187, 0.35);
+  
+  --text-main: #e1e3e0;
+  --text-muted: #bfc9c3;
+  --text-dark: #0c0f0e;
+  --error-color: #ffb4ab;
+  --error-bg: rgba(147, 0, 10, 0.2);
+
+  --font-editorial: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-technical: 'Geist', ui-monospace, monospace;
+}
+
+/* Global Reset & Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-color);
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(0, 77, 61, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(42, 255, 187, 0.05) 0%, transparent 40%);
+  background-attachment: fixed;
+  color: var(--text-main);
+  font-family: var(--font-editorial);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary-emerald);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-mint);
+}
+
+/* Core Container & Typography */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+h1, h2, h3 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Layout Grid */
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .layout-grid {
+    grid-template-columns: 380px 1fr;
+    align-items: start;
+  }
+}
+
+/* Glassmorphism Cards */
+.glass-card {
+  background: var(--surface-color);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(42, 255, 187, 0.2);
+}
+
+/* Premium Buttons */
+.btn-primary {
+  background: var(--neon-mint);
+  color: var(--text-dark);
+  font-family: var(--font-technical);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.2s ease, box-shadow 0.3s ease, background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 15px var(--neon-mint-glow);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  font-family: var(--font-technical);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 10px 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(42, 255, 187, 0.05);
+  border-color: var(--border-color-focus);
+}
+
+/* Inputs & Form Fields */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.form-label {
+  font-family: var(--font-technical);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.input-field {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-main);
+  font-family: var(--font-editorial);
+  font-size: 16px;
+  padding: 12px;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+}
+
+.input-field:focus {
+  border-color: var(--neon-mint);
+  box-shadow: 0 0 8px var(--neon-mint-glow);
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo span {
+  color: var(--neon-mint);
+  text-shadow: 0 0 8px var(--neon-mint-glow);
+}
+
+/* Song Card UI */
+.song-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(17, 20, 19, 0.4);
+  border: 1px solid rgba(42, 255, 187, 0.05);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  position: relative;
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.song-card:hover {
+  background: rgba(17, 20, 19, 0.8);
+  border-color: rgba(42, 255, 187, 0.15);
+  transform: translateX(4px);
+}
+
+.song-artwork {
+  width: 56px;
+  height: 56px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--primary-emerald);
+  flex-shrink: 0;
+}
+
+.song-info {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.song-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.song-artist {
+  font-size: 14px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.song-duration {
+  font-family: var(--font-technical);
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Audio Player Play/Pause Icon Button */
+.btn-play-pause {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-play-pause:hover {
+  color: var(--neon-mint);
+  background-color: rgba(42, 255, 187, 0.08);
+}
+
+.btn-play-pause.playing {
+  color: var(--neon-mint);
+  animation: pulse 1.5s infinite;
+}
+
+/* Delete Button for Admin */
+.btn-delete {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-delete:hover {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.08);
+}
+
+/* Suggestions Dropdown for iTunes */
+.suggestions-list {
+  background: var(--surface-color-solid);
+  border: 1px solid var(--border-color-focus);
+  border-radius: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 4px;
+  position: absolute;
+  width: calc(100% - 48px); /* matches input margins */
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.suggestion-item:hover {
+  background-color: rgba(42, 255, 187, 0.08);
+}
+
+.suggestion-art {
+  width: 36px;
+  height: 36px;
+  border-radius: 2px;
+  object-fit: cover;
+}
+
+.suggestion-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.suggestion-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestion-artist {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Modal Overlay & Card for Login */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 400px;
+  border-color: var(--border-color-focus);
+}
+
+/* Floating Now Playing Mini-bar */
+.now-playing-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 600px;
+  z-index: 90;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(17, 20, 19, 0.85);
+  border: 1px solid var(--neon-mint);
+  box-shadow: 0 0 20px var(--neon-mint-glow);
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translate(-50%, 100%); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(42, 255, 187, 0.4); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(42, 255, 187, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(42, 255, 187, 0); }
+}
+
+@keyframes bounce {
+  10% { height: 4px; }
+  100% { height: 18px; }
+}
+
+/* Audio Visualizer Mini */
+.audio-visualizer-mini {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 20px;
+  width: 24px;
+}
+
+.audio-visualizer-mini .bar {
+  width: 3px;
+  background: var(--neon-mint);
+  border-radius: 1px;
+  height: 3px;
+}
+
+.audio-visualizer-mini.playing .bar {
+  animation: bounce 0.8s ease-in-out infinite alternate;
+}
+
+.audio-visualizer-mini.playing .bar-1 { animation-delay: 0.15s; }
+.audio-visualizer-mini.playing .bar-2 { animation-delay: 0.45s; }
+.audio-visualizer-mini.playing .bar-3 { animation-delay: 0.6s; }
+.audio-visualizer-mini.playing .bar-4 { animation-delay: 0.3s; }
+
+/* Helper utility styles */
+.badge-admin {
+  background: rgba(42, 255, 187, 0.1);
+  border: 1px solid var(--neon-mint);
+  color: var(--neon-mint);
+  font-family: var(--font-technical);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.error-message {
+  color: var(--error-color);
+  background: var(--error-bg);
+  border: 1px solid rgba(255, 180, 171, 0.2);
+  border-radius: 4px;
+  padding: 10px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
