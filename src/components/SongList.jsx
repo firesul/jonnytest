@@ -1,42 +1,17 @@
 import React, { useState } from 'react';
-import { Trash2, Play, Pause, ExternalLink, Music, X, Check, Edit3 } from 'lucide-react';
+import { Trash2, Play, Pause, ExternalLink, Music, X, Check } from 'lucide-react';
 
 export default function SongList({ 
   songs, 
   isAdmin, 
   onDeleteSong, 
   onClearSongs,
-  onUpdateSong,
   currentPlayingSong, 
   isPlaying, 
   onTogglePlay 
 }) {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [isClearing, setIsClearing] = useState(false);
-  const [editingSongId, setEditingSongId] = useState(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editArtist, setEditArtist] = useState('');
-  const [editArtwork, setEditArtwork] = useState('');
-  const [editDuration, setEditDuration] = useState('');
-
-  const handleStartEdit = (song) => {
-    setEditingSongId(song.id);
-    setEditTitle(song.title);
-    setEditArtist(song.artist);
-    setEditArtwork(song.artwork || '');
-    setEditDuration(song.duration || 0);
-    setConfirmDeleteId(null);
-  };
-
-  const handleSaveEdit = (songId) => {
-    onUpdateSong(songId, {
-      title: editTitle,
-      artist: editArtist,
-      artwork: editArtwork,
-      duration: Number(editDuration) || 0
-    });
-    setEditingSongId(null);
-  };
 
   const formatDuration = (seconds) => {
     if (!seconds || isNaN(seconds) || seconds === 0) return '--:--';
@@ -57,13 +32,13 @@ export default function SongList({
           display: 'flex', 
           alignItems: 'center', 
           justify: 'center', 
-          marginBottom: '20px',
+          margin: '0 auto 20px auto',
           color: 'var(--neon-mint)'
         }}>
           <Music size={28} />
         </div>
         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>La lista está vacía</h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '320px' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '320px', margin: '0 auto' }}>
           Sé el primero en agregar una canción escribiendo su nombre o pegando una dirección URL a la izquierda.
         </p>
       </div>
@@ -132,93 +107,6 @@ export default function SongList({
         {songs.map((song) => {
           const isCurrentTrack = currentPlayingSong && currentPlayingSong.id === song.id;
           const isThisPlaying = isCurrentTrack && isPlaying;
-
-          if (editingSongId === song.id) {
-            return (
-              <div key={song.id} className="song-card editing" id={`song-card-${song.id}`} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  {/* Thumbnail preview */}
-                  {editArtwork ? (
-                    <img src={editArtwork} alt="Preview" className="song-artwork" />
-                  ) : (
-                    <div className="song-artwork" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary-emerald)' }}>
-                      <Music size={22} style={{ color: 'var(--text-muted)' }} />
-                    </div>
-                  )}
-                  <div style={{ flexGrow: 1 }}>
-                    <input 
-                      type="text" 
-                      className="input-field" 
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      placeholder="Título de la canción"
-                      style={{ padding: '6px 12px', fontSize: '14px', marginBottom: '6px', height: '32px' }}
-                      id={`edit-title-input-${song.id}`}
-                    />
-                    <input 
-                      type="text" 
-                      className="input-field" 
-                      value={editArtist}
-                      onChange={(e) => setEditArtist(e.target.value)}
-                      placeholder="Artista"
-                      style={{ padding: '6px 12px', fontSize: '13px', height: '32px' }}
-                      id={`edit-artist-input-${song.id}`}
-                    />
-                  </div>
-                </div>
-                
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '4px' }}>
-                  <div style={{ flexGrow: 1, minWidth: '150px' }}>
-                    <label className="form-label" style={{ fontSize: '10px', marginBottom: '2px', display: 'block' }}>URL de Carátula</label>
-                    <input 
-                      type="text" 
-                      className="input-field" 
-                      value={editArtwork}
-                      onChange={(e) => setEditArtwork(e.target.value)}
-                      placeholder="URL de Imagen (Artwork)"
-                      style={{ padding: '6px 12px', fontSize: '12px', height: '28px' }}
-                      id={`edit-artwork-input-${song.id}`}
-                    />
-                  </div>
-                  <div style={{ width: '80px' }}>
-                    <label className="form-label" style={{ fontSize: '10px', marginBottom: '2px', display: 'block' }}>Segundos</label>
-                    <input 
-                      type="number" 
-                      className="input-field" 
-                      value={editDuration}
-                      onChange={(e) => setEditDuration(e.target.value)}
-                      placeholder="Segundos"
-                      style={{ padding: '6px 12px', fontSize: '12px', height: '28px' }}
-                      id={`edit-duration-input-${song.id}`}
-                    />
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto', marginTop: '14px' }}>
-                    <button
-                      onClick={() => handleSaveEdit(song.id)}
-                      className="btn-primary"
-                      style={{ padding: '6px 12px', fontSize: '11px', height: '28px', gap: '4px' }}
-                      title="Guardar cambios"
-                      id={`save-edit-btn-${song.id}`}
-                    >
-                      <Check size={12} />
-                      Guardar
-                    </button>
-                    <button
-                      onClick={() => setEditingSongId(null)}
-                      className="btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: '11px', height: '28px', gap: '4px' }}
-                      title="Cancelar"
-                      id={`cancel-edit-btn-${song.id}`}
-                    >
-                      <X size={12} />
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          }
 
           return (
             <div key={song.id} className="song-card" id={`song-card-${song.id}`}>
@@ -314,27 +202,16 @@ export default function SongList({
                         </button>
                       </>
                     ) : (
-                      <>
-                        <button
-                          onClick={() => handleStartEdit(song)}
-                          className="btn-play-pause"
-                          title="Editar metadatos"
-                          id={`edit-btn-${song.id}`}
-                          style={{ color: 'var(--text-muted)' }}
-                        >
-                          <Edit3 size={16} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setConfirmDeleteId(song.id);
-                          }}
-                          className="btn-delete"
-                          title="Eliminar canción"
-                          id={`delete-btn-${song.id}`}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </>
+                      <button
+                        onClick={() => {
+                          setConfirmDeleteId(song.id);
+                        }}
+                        className="btn-delete"
+                        title="Eliminar canción"
+                        id={`delete-btn-${song.id}`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     )}
                   </div>
                 )}

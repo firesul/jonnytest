@@ -115,25 +115,6 @@ export default function App() {
     await dbService.clearAllSongs();
   };
 
-  const handleUpdateSong = async (id, updatedFields) => {
-    // SECURITY CHECK: Enforce admin access.
-    if (!isAdmin) {
-      alert('Acceso Denegado: Debes iniciar sesión como administrador para editar canciones.');
-      return;
-    }
-    
-    // If the song being updated is currently playing, we update the player reference too
-    if (currentPlayingSong && currentPlayingSong.id === id) {
-      const updatedSong = { ...currentPlayingSong, ...updatedFields };
-      setCurrentPlayingSong(updatedSong);
-      // If the preview URL changed and it was playing, stop it
-      if (updatedFields.previewUrl !== undefined && updatedFields.previewUrl !== currentPlayingSong.previewUrl) {
-        handleStopAudio();
-      }
-    }
-
-    await dbService.updateSong(id, updatedFields);
-  };
 
   // Audio Playback Controls
   const handleTogglePlay = (song) => {
@@ -176,7 +157,6 @@ export default function App() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {isAdmin ? (
             <>
-              <span className="badge-admin" id="adminBadge">Admin Mode</span>
               <button 
                 onClick={handleLogout} 
                 className="btn-secondary"
@@ -213,7 +193,6 @@ export default function App() {
             isAdmin={isAdmin}
             onDeleteSong={handleDeleteSong}
             onClearSongs={handleClearSongs}
-            onUpdateSong={handleUpdateSong}
             currentPlayingSong={currentPlayingSong}
             isPlaying={isPlaying}
             onTogglePlay={handleTogglePlay}

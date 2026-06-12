@@ -1,106 +1,55 @@
-// Database Abstraction layer for Playlist (formerly VibeList)
-// Automatically supports LocalStorage with active subscriber pattern and multi-tab sync.
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, onValue, push, set, remove } from "firebase/database";
 
-const LOCAL_STORAGE_KEY = 'vibelist_songs';
-let subscribers = [];
-
-const getLocalSongs = () => {
-  try {
-    const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (e) {
-    console.error('Error reading from LocalStorage:', e);
-    return [];
-  }
+const firebaseConfig = {
+  apiKey: "AIzaSyDRaxZTpgT8j5FXtcZiGWLnHQVQy98xTKY",
+  authDomain: "jonnytest-b0dea.firebaseapp.com",
+  projectId: "jonnytest-b0dea",
+  storageBucket: "jonnytest-b0dea.firebasestorage.app",
+  messagingSenderId: "618071358221",
+  appId: "1:618071358221:web:2e9c3aec142d0dc205ce44",
+  measurementId: "G-0GD9R29ME4",
+  databaseURL: "https://jonnytest-b0dea-default-rtdb.firebaseio.com"
 };
 
-const saveLocalSongs = (songs) => {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(songs));
-  } catch (e) {
-    console.error('Error writing to LocalStorage:', e);
-  }
-};
-
-// Default mock songs to show on first run if empty
-const DEFAULT_SONGS = [
-  {
-    id: 'mock-1',
-    title: 'Blinding Lights',
-    artist: 'The Weeknd',
-    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/44/28/7f/mzi.cfftdvcl.jpg/400x400bb.jpg',
-    duration: 200,
-    previewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/bf/d7/08/bfd70830-ec38-6625-f935-7db84872c8f8/mzaf_10915609312215886616.plus.aac.p.m4a',
-    url: 'https://music.apple.com/us/album/blinding-lights/1499385848?i=1499386152',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString() // 2 hours ago
-  },
-  {
-    id: 'mock-2',
-    title: 'Dakiti',
-    artist: 'Bad Bunny & Jhayco',
-    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/a5/d8/6d/a5d86d5e-e478-f7b6-c56a-a28a2a0fcd56/602435471676.jpg/400x400bb.jpg',
-    duration: 205,
-    previewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/58/b0/a2/58b0a2fa-f273-0447-758c-85f9be28f322/mzaf_16480572700344078696.plus.aac.p.m4a',
-    url: 'https://music.apple.com/us/album/dakiti/1542104124?i=1542104131',
-    createdAt: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
-  }
-];
-
-// Initialize default songs if localStorage is empty
-if (getLocalSongs().length === 0) {
-  saveLocalSongs(DEFAULT_SONGS);
-}
-
-const notifySubscribers = (songs) => {
-  subscribers.forEach(cb => {
-    try {
-      cb(songs);
-    } catch (e) {
-      console.error('Error notifying subscriber:', e);
-    }
-  });
-};
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+const songsRef = ref(database, 'songs');
 
 export const dbService = {
   /**
-   * Subscribes to songs updates in real-time.
-   * Works client-side via active callback registry and StorageEvents for cross-tab updates.
+   * Subscribes to songs updates in real-time from Firebase Realtime Database.
    * @param {function} callback - Called with updated songs array
    * @returns {function} unsubscribe function
    */
   subscribeSongs: (callback) => {
-    subscribers.push(callback);
-    // Initial call
-    callback(getLocalSongs());
-
-    const handleStorageChange = (e) => {
-      if (e.key === LOCAL_STORAGE_KEY) {
-        const updated = getLocalSongs();
-        notifySubscribers(updated);
+    return onValue(songsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const songsList = Object.keys(data).map(key => ({
+          ...data[key],
+          id: key
+        }));
+        songsList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        callback(songsList);
+      } else {
+        callback([]);
       }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      subscribers = subscribers.filter(cb => cb !== callback);
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    });
   },
 
   /**
-   * Adds a new song to the list.
+   * Adds a new song to Firebase.
    * @param {object} songData 
    */
   addSong: async (songData) => {
-    const songs = getLocalSongs();
+    const newSongRef = push(songsRef);
     const newSong = {
       ...songData,
-      id: 'song-' + Math.random().toString(36).substring(2, 9),
+      id: newSongRef.key,
       createdAt: new Date().toISOString()
     };
-    songs.unshift(newSong); // Add to beginning of list
-    saveLocalSongs(songs);
-    notifySubscribers(songs);
+    await set(newSongRef, newSong);
     return newSong;
   },
 
@@ -109,37 +58,14 @@ export const dbService = {
    * @param {string} id 
    */
   deleteSong: async (id) => {
-    let songs = getLocalSongs();
-    songs = songs.filter(song => song.id !== id);
-    saveLocalSongs(songs);
-    notifySubscribers(songs);
+    const songRef = ref(database, `songs/${id}`);
+    await remove(songRef);
   },
 
   /**
    * Deletes all songs from the list.
    */
   clearAllSongs: async () => {
-    saveLocalSongs([]);
-    notifySubscribers([]);
-  },
-
-  /**
-   * Updates an existing song's details.
-   * @param {string} id 
-   * @param {object} updatedFields 
-   */
-  updateSong: async (id, updatedFields) => {
-    let songs = getLocalSongs();
-    songs = songs.map(song => {
-      if (song.id === id) {
-        return {
-          ...song,
-          ...updatedFields
-        };
-      }
-      return song;
-    });
-    saveLocalSongs(songs);
-    notifySubscribers(songs);
+    await set(songsRef, null);
   }
 };
