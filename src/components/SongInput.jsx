@@ -95,35 +95,33 @@ export default function SongInput({ onAddSong }) {
           country = pathSegments[0];
         }
 
-        let songSlug = '';
-        const albumIndex = pathSegments.indexOf('album');
-        const songIndex = pathSegments.indexOf('song');
-        if (albumIndex > -1 && pathSegments.length > albumIndex + 1) {
-          songSlug = pathSegments[albumIndex + 1];
-        } else if (songIndex > -1 && pathSegments.length > songIndex + 1) {
-          songSlug = pathSegments[songIndex + 1];
+        let trackId = url.searchParams.get('i');
+        if (!trackId && pathSegments.length > 0) {
+          trackId = pathSegments[pathSegments.length - 1];
         }
 
-        if (songSlug) {
-          const songName = songSlug.replace(/[-_]/g, ' ');
+        if (trackId && /^\d+$/.test(trackId)) {
           try {
             const itunesRes = await fetch(
-              `https://itunes.apple.com/search?term=${encodeURIComponent(songName)}&country=${country}&media=music&limit=1`
+              `https://itunes.apple.com/lookup?id=${trackId}&country=${country}`
             );
             const itunesData = await itunesRes.json();
-            if (itunesData.results && itunesData.results.length > 0) {
-              const item = itunesData.results[0];
+            
+            // Sometimes it returns the album first if it's an album ID, we want the track
+            const trackItem = itunesData.results.find(item => item.wrapperType === 'track');
+            
+            if (trackItem) {
               return {
-                title: item.trackName,
-                artist: item.artistName,
-                artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : '',
-                duration: Math.round(item.trackTimeMillis / 1000),
-                previewUrl: item.previewUrl || '',
+                title: trackItem.trackName,
+                artist: trackItem.artistName,
+                artwork: trackItem.artworkUrl100 ? trackItem.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : '',
+                duration: Math.round(trackItem.trackTimeMillis / 1000),
+                previewUrl: trackItem.previewUrl || '',
                 url: urlStr
               };
             }
           } catch (e) {
-            console.error('iTunes search from Apple Music slug failed:', e);
+            console.error('iTunes lookup from Apple Music ID failed:', e);
           }
         }
       }

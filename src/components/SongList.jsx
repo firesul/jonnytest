@@ -35,7 +35,7 @@ export default function SongList({
           margin: '0 auto 20px auto',
           color: 'var(--neon-mint)'
         }}>
-          <Music size={28} />
+          <Music size={28} style={{ transform: 'translateX(2px)' }} />
         </div>
         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>La lista está vacía</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '320px', margin: '0 auto' }}>
