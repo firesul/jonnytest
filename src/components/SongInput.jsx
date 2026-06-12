@@ -128,75 +128,55 @@ export default function SongInput({ onAddSong }) {
 
       // 2. SPOTIFY (Try native oEmbed, fall back to Microlink proxy)
       if (isSpotify) {
-        try {
-          const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(urlStr)}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data && data.title) {
-              let title = data.title;
-              let artist = 'Spotify';
-              const byParts = title.split(' by ');
-              if (byParts.length > 1) {
-                artist = byParts[1];
-                title = byParts[0].split(' - ')[0];
-              }
+        let title = '';
+        let artist = '';
+        let artwork = '';
 
-              // Search iTunes to get duration and preview audio
-              const itunesRes = await fetch(
-                `https://itunes.apple.com/search?term=${encodeURIComponent(title + ' ' + artist)}&media=music&limit=1`
-              );
-              const itunesData = await itunesRes.json();
-              if (itunesData.results && itunesData.results.length > 0) {
-                const item = itunesData.results[0];
-                return {
-                  title: item.trackName,
-                  artist: item.artistName,
-                  artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : (data.thumbnail_url || ''),
-                  duration: Math.round(item.trackTimeMillis / 1000),
-                  previewUrl: item.previewUrl || '',
-                  url: urlStr
-                };
-              }
-
-              return {
-                title: title,
-                artist: artist,
-                artwork: data.thumbnail_url || '',
-                duration: 0,
-                previewUrl: '',
-                url: urlStr
-              };
-            }
-          }
-        } catch (e) {
-          console.warn('Native Spotify oEmbed failed, trying Microlink:', e);
-        }
-
-        // Microlink fallback
+        // Try Microlink first because oEmbed dropped artist names
         try {
           const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(urlStr)}`;
           const response = await fetch(microlinkUrl);
           const result = await response.json();
           if (result.status === 'success' && result.data) {
-            const meta = result.data;
-            let pageTitle = meta.title || '';
-            let artworkUrl = meta.image?.url || meta.logo?.url || '';
+            title = result.data.title || '';
+            artist = result.data.author || 'Spotify';
+            artwork = result.data.image?.url || result.data.logo?.url || '';
             
-            let cleanTitle = pageTitle.replace(/\s*\|\s*Spotify/gi, '').trim();
-            let songTitle = cleanTitle;
-            let artist = 'Spotify';
-            const songByParts = cleanTitle.split(/\s*-\s*song\s+by\s+/i);
-            const albumByParts = cleanTitle.split(/\s*-\s*album\s+by\s+/i);
-            if (songByParts.length > 1) {
-              songTitle = songByParts[0];
-              artist = songByParts[1];
-            } else if (albumByParts.length > 1) {
-              songTitle = albumByParts[0];
-              artist = albumByParts[1];
-            }
+            // Clean title if it contains " | Spotify"
+            title = title.replace(/\s*\|\s*Spotify/gi, '').trim();
+          }
+        } catch (err) {
+          console.warn('Spotify Microlink failed:', err);
+        }
 
+        // Fallback to oEmbed if Microlink failed to get a title
+        if (!title) {
+          try {
+            const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(urlStr)}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data && data.title) {
+                title = data.title;
+                artist = 'Spotify';
+                artwork = data.thumbnail_url || '';
+                const byParts = title.split(' by ');
+                if (byParts.length > 1) {
+                  artist = byParts[1];
+                  title = byParts[0].split(' - ')[0];
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Spotify oEmbed failed:', e);
+          }
+        }
+
+        if (title) {
+          // Search iTunes to get duration and preview audio
+          try {
+            const searchQuery = title + ' ' + (artist !== 'Spotify' ? artist : '');
             const itunesRes = await fetch(
-              `https://itunes.apple.com/search?term=${encodeURIComponent(songTitle + ' ' + artist)}&media=music&limit=1`
+              `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&media=music&limit=1`
             );
             const itunesData = await itunesRes.json();
             if (itunesData.results && itunesData.results.length > 0) {
@@ -204,24 +184,25 @@ export default function SongInput({ onAddSong }) {
               return {
                 title: item.trackName,
                 artist: item.artistName,
-                artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : artworkUrl,
+                artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : artwork,
                 duration: Math.round(item.trackTimeMillis / 1000),
                 previewUrl: item.previewUrl || '',
                 url: urlStr
               };
             }
-
-            return {
-              title: songTitle,
-              artist: artist,
-              artwork: artworkUrl,
-              duration: 0,
-              previewUrl: '',
-              url: urlStr
-            };
+          } catch (e) {
+            console.error('iTunes search from Spotify info failed:', e);
           }
-        } catch (err) {
-          console.error('Spotify Microlink fallback failed:', err);
+
+          // If iTunes fails, return what we have
+          return {
+            title: title,
+            artist: artist,
+            artwork: artwork,
+            duration: 0,
+            previewUrl: '',
+            url: urlStr
+          };
         }
       }
 
