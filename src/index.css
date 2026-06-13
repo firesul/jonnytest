@@ -335,9 +335,11 @@ h1, h2, h3 {
   overflow-y: auto;
   margin-top: 4px;
   position: absolute;
-  width: calc(100% - 48px); /* matches input margins */
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: 50;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
 }
 
 .suggestion-item {
@@ -498,8 +500,15 @@ h1, h2, h3 {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(75vh - 100px);
+  min-height: calc(80vh - 120px);
   width: 100%;
+  padding: 16px 0;
+}
+
+.layout-single-centered .form-column {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
 }
 
 /* Success Card & Animation */
@@ -508,7 +517,7 @@ h1, h2, h3 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 36px 24px;
+  padding: 36px 20px;
   animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   text-align: center;
 }
@@ -519,8 +528,8 @@ h1, h2, h3 {
 }
 
 .success-checkmark-circle {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: rgba(42, 255, 187, 0.1);
   border: 2px solid var(--neon-mint);
@@ -541,13 +550,13 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 6px;
   padding: 12px;
   width: 100%;
   text-align: left;
-  margin-top: 10px;
+  margin-top: 16px;
 }
 
 .success-badge-artwork {
@@ -599,63 +608,94 @@ h1, h2, h3 {
   font-weight: 600;
 }
 
-/* Vibe Selector Styles */
-.vibe-selector-container {
-  margin-top: 24px;
-  border-top: 1px solid var(--border-color);
-  padding-top: 20px;
+/* Slide-over Settings Sidebar Drawer */
+.sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 150;
+  animation: fadeIn 0.25s ease-out;
 }
 
-.vibe-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+.settings-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 380px;
+  background: rgba(17, 20, 19, 0.85);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-left: 1px solid var(--border-color);
+  box-shadow: -10px 0 32px rgba(0, 0, 0, 0.6);
+  z-index: 160;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-content {
+  flex-grow: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-@media (min-width: 480px) {
-  .vibe-grid {
-    grid-template-columns: repeat(5, 1fr);
-  }
+.sidebar-vibe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
 }
 
-.vibe-btn {
+.sidebar-vibe-btn {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 6px;
-  padding: 10px 8px;
+  border-radius: 8px;
+  padding: 14px 16px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  color: var(--text-muted);
-  font-family: var(--font-technical);
+  align-items: flex-start;
+  transition: all 0.25s ease;
+  color: var(--text-main);
+  font-family: var(--font-editorial);
+  width: 100%;
 }
 
-.vibe-btn:hover {
+.sidebar-vibe-btn:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-  color: var(--text-main);
+  transform: translateX(-4px);
 }
 
-.vibe-btn.active {
+.sidebar-vibe-btn.active {
   background: rgba(255, 255, 255, 0.06);
-  border-color: var(--vibe-accent);
-  color: var(--text-main);
-  box-shadow: 0 0 10px var(--vibe-accent);
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
-}
-
-.vibe-desc {
-  font-size: 9px;
-  opacity: 0.6;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
+  border-color: var(--sidebar-vibe-accent);
+  box-shadow: 0 0 12px var(--sidebar-vibe-accent);
 }
 
 /* Vibe Badges inside SongList */
@@ -698,4 +738,34 @@ h1, h2, h3 {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.3);
   color: #ffffff;
+}
+
+/* General Responsiveness Enhancements */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 16px 12px;
+    gap: 20px;
+  }
+  
+  .navbar {
+    padding: 12px 0;
+  }
+  
+  .logo {
+    font-size: 20px;
+  }
+  
+  .glass-card {
+    padding: 16px;
+  }
+  
+  .suggestions-list {
+    max-height: 180px;
+  }
+
+  .now-playing-bar {
+    bottom: 12px;
+    padding: 10px 14px;
+    width: calc(100% - 24px);
+  }
 }

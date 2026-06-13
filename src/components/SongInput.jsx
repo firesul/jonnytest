@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Link as LinkIcon, Music, Check, Zap, Flame, Sparkles, Disc } from 'lucide-react';
+import { Plus, Search, Link as LinkIcon, Music, Check } from 'lucide-react';
 
 // Map iTunes primaryGenreName to our 5 visual Vibes
 const mapGenreToVibe = (genreName) => {
@@ -88,7 +88,6 @@ export default function SongInput({ onAddSong }) {
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [error, setError] = useState('');
-  const [selectedVibe, setSelectedVibe] = useState('chill');
   
   // Success state feedback
   const [showSuccess, setShowSuccess] = useState(false);
@@ -452,8 +451,6 @@ export default function SongInput({ onAddSong }) {
       vibe: detectedVibe
     });
     
-    // Automatically visual-sync the vibe selector for aesthetic consistency
-    setSelectedVibe(detectedVibe);
     setShowSuccess(true);
     setInputValue('');
     setSuggestions([]);
@@ -472,12 +469,11 @@ export default function SongInput({ onAddSong }) {
       if (isUrl) {
         const metadata = await fetchMetadataFromUrl(inputValue);
         if (metadata) {
-          const finalVibe = mapGenreToVibe(metadata.primaryGenreName) || selectedVibe;
+          const finalVibe = mapGenreToVibe(metadata.primaryGenreName);
           songData = {
             ...metadata,
             vibe: finalVibe
           };
-          setSelectedVibe(finalVibe);
         } else {
           songData = {
             title: 'Enlace Web',
@@ -486,7 +482,7 @@ export default function SongInput({ onAddSong }) {
             duration: 0,
             previewUrl: '',
             url: inputValue,
-            vibe: selectedVibe
+            vibe: 'chill'
           };
         }
       } else {
@@ -496,7 +492,7 @@ export default function SongInput({ onAddSong }) {
         const data = await response.json();
         if (data.results && data.results.length > 0) {
           const item = data.results[0];
-          const finalVibe = mapGenreToVibe(item.primaryGenreName) || selectedVibe;
+          const finalVibe = mapGenreToVibe(item.primaryGenreName);
           songData = {
             title: item.trackName,
             artist: item.artistName,
@@ -506,7 +502,6 @@ export default function SongInput({ onAddSong }) {
             url: item.trackViewUrl || '',
             vibe: finalVibe
           };
-          setSelectedVibe(finalVibe);
         } else {
           songData = {
             title: inputValue,
@@ -515,7 +510,7 @@ export default function SongInput({ onAddSong }) {
             duration: 0,
             previewUrl: '',
             url: '',
-            vibe: selectedVibe
+            vibe: 'chill'
           };
         }
       }
@@ -540,7 +535,6 @@ export default function SongInput({ onAddSong }) {
     }
   };
 
-  // Render success feedback view
   if (showSuccess) {
     const vibeLabel = 
       successDetails?.vibe === 'chill' ? 'Chill ❄️' :
@@ -602,7 +596,7 @@ export default function SongInput({ onAddSong }) {
           <label className="form-label" htmlFor="songSearchInput">
             Escribe el nombre o pega la URL
           </label>
-          <div style={{ display: 'flex', gap: '8px', position: 'relative', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
             <div style={{ position: 'relative', flexGrow: 1 }}>
               <input
                 type="text"
@@ -617,6 +611,31 @@ export default function SongInput({ onAddSong }) {
               <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>
                 {inputValue.startsWith('http') ? <LinkIcon size={16} /> : <Search size={16} />}
               </span>
+
+              {/* Suggestions Dropdown (Nested inside relative wrapper) */}
+              {showDropdown && suggestions.length > 0 && (
+                <div className="suggestions-list" id="searchDropdown">
+                  {suggestions.map((song) => (
+                    <div
+                      key={song.trackId || Math.random()}
+                      className="suggestion-item"
+                      onClick={() => handleSelectSuggestion(song)}
+                    >
+                      {song.artwork ? (
+                        <img src={song.artwork} alt={song.title} className="suggestion-art" />
+                      ) : (
+                        <div className="suggestion-art" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary-emerald)' }}>
+                          <Music size={16} />
+                        </div>
+                      )}
+                      <div className="suggestion-details">
+                        <div className="suggestion-title">{song.title}</div>
+                        <div className="suggestion-artist">{song.artist}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <button 
               type="submit" 
@@ -627,63 +646,6 @@ export default function SongInput({ onAddSong }) {
               <Plus size={16} />
               Agregar
             </button>
-          </div>
-
-          {/* Suggestions Dropdown */}
-          {showDropdown && suggestions.length > 0 && (
-            <div className="suggestions-list" id="searchDropdown">
-              {suggestions.map((song) => (
-                <div
-                  key={song.trackId || Math.random()}
-                  className="suggestion-item"
-                  onClick={() => handleSelectSuggestion(song)}
-                >
-                  {song.artwork ? (
-                    <img src={song.artwork} alt={song.title} className="suggestion-art" />
-                  ) : (
-                    <div className="suggestion-art" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary-emerald)' }}>
-                      <Music size={16} />
-                    </div>
-                  )}
-                  <div className="suggestion-details">
-                    <div className="suggestion-title">{song.title}</div>
-                    <div className="suggestion-artist">{song.artist}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Dynamic Vibe Selector */}
-        <div className="vibe-selector-container">
-          <span className="form-label" style={{ marginBottom: '10px', display: 'block' }}>
-            Personalizar Vibra (Atmósfera del Fondo)
-          </span>
-          <div className="vibe-grid">
-            {[
-              { id: 'chill', icon: <Disc size={14} />, label: 'Chill ❄️', desc: 'Lofi / Jazz / R&B', color: '#00f0ff' },
-              { id: 'energy', icon: <Zap size={14} />, label: 'Energy ⚡', desc: 'Pop / Electro / Dance', color: '#ff50b4' },
-              { id: 'vibrant', icon: <Sparkles size={14} />, label: 'Vibrant 🔥', desc: 'Reggaeton / Latino', color: '#ffd700' },
-              { id: 'intense', icon: <Flame size={14} />, label: 'Intense 🎸', desc: 'Rock / Metal / Indie', color: '#e60f28' },
-              { id: 'ethereal', icon: <Music size={14} />, label: 'Ethereal ✨', desc: 'Ambient / Clásica', color: '#ffffff' }
-            ].map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                className={`vibe-btn ${selectedVibe === v.id ? 'active' : ''}`}
-                style={{
-                  '--vibe-accent': v.color
-                }}
-                onClick={() => setSelectedVibe(v.id)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700' }}>
-                  {v.icon}
-                  <span>{v.label}</span>
-                </div>
-                <span className="vibe-desc">{v.desc}</span>
-              </button>
-            ))}
           </div>
         </div>
       </form>

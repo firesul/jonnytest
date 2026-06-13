@@ -11,7 +11,8 @@ import {
   Play, 
   Pause, 
   X, 
-  Volume2 
+  Volume2,
+  Settings
 } from 'lucide-react';
 
 export default function App() {
@@ -19,6 +20,12 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   
+  // Configuration Settings State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsVibe, setSettingsVibe] = useState(() => {
+    return localStorage.getItem('vibelist_background_mode') || 'auto';
+  });
+
   // Audio Playback State
   const [currentPlayingSong, setCurrentPlayingSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -90,13 +97,11 @@ export default function App() {
   };
 
   const handleDeleteSong = async (id) => {
-    // SECURITY CHECK: Enforce admin access.
     if (!isAdmin) {
       alert('Acceso Denegado: Debes iniciar sesión como administrador para eliminar canciones.');
       return;
     }
 
-    // If the song being deleted is currently playing, stop it first
     if (currentPlayingSong && currentPlayingSong.id === id) {
       handleStopAudio();
     }
@@ -104,7 +109,6 @@ export default function App() {
   };
 
   const handleClearSongs = async () => {
-    // SECURITY CHECK: Enforce admin access.
     if (!isAdmin) {
       alert('Acceso Denegado: Debes iniciar sesión como administrador para limpiar la lista.');
       return;
@@ -143,13 +147,72 @@ export default function App() {
     setIsPlaying(false);
   };
 
+  // Handle manual sidebar setting updates
+  const handleUpdateSettingsVibe = (vibe) => {
+    setSettingsVibe(vibe);
+    localStorage.setItem('vibelist_background_mode', vibe);
+  };
+
   // Calculate active background vibe:
-  // If the admin is playing a preview -> use that song's vibe.
-  // If no preview is playing -> use the vibe of the most recently added song in the queue (songs[0]).
-  // Default to 'chill'.
-  const activeVibe = (currentPlayingSong && isPlaying)
-    ? (currentPlayingSong.vibe || 'chill')
-    : (songs.length > 0 ? (songs[0].vibe || 'chill') : 'chill');
+  // If manual vibe is selected (not 'auto') -> use it directly.
+  // Otherwise, fallback to the dynamic music-based vibe:
+  // (active playing preview song > latest queue song > default 'chill').
+  const activeVibe = settingsVibe !== 'auto'
+    ? settingsVibe
+    : ((currentPlayingSong && isPlaying)
+        ? (currentPlayingSong.vibe || 'chill')
+        : (songs.length > 0 ? (songs[0].vibe || 'chill') : 'chill'));
+
+  // Effect to dynamically adjust CSS Accent Variables on HTML root based on active Vibe
+  useEffect(() => {
+    const root = document.documentElement;
+    
+    let primaryHex = '#004d3d';       // default green-emerald
+    let primaryHoverHex = '#00604c';
+    let neonHex = '#2affbb';          // default mint
+    let neonGlow = 'rgba(42, 255, 187, 0.35)';
+
+    switch (activeVibe) {
+      case 'chill':
+        primaryHex = '#00264d';
+        primaryHoverHex = '#003c7a';
+        neonHex = '#00f0ff';
+        neonGlow = 'rgba(0, 240, 255, 0.35)';
+        break;
+      case 'energy':
+        primaryHex = '#420054';
+        primaryHoverHex = '#5b0073';
+        neonHex = '#ff50b4';
+        neonGlow = 'rgba(255, 80, 180, 0.35)';
+        break;
+      case 'vibrant':
+        primaryHex = '#544300';
+        primaryHoverHex = '#705a00';
+        neonHex = '#ffd700';
+        neonGlow = 'rgba(255, 215, 0, 0.35)';
+        break;
+      case 'intense':
+        primaryHex = '#54020a';
+        primaryHoverHex = '#70030e';
+        neonHex = '#e60f28';
+        neonGlow = 'rgba(230, 15, 40, 0.35)';
+        break;
+      case 'ethereal':
+        primaryHex = '#242424';
+        primaryHoverHex = '#383838';
+        neonHex = '#ffffff';
+        neonGlow = 'rgba(255, 255, 255, 0.35)';
+        break;
+      default:
+        break;
+    }
+
+    root.style.setProperty('--primary-emerald', primaryHex);
+    root.style.setProperty('--primary-emerald-hover', primaryHoverHex);
+    root.style.setProperty('--neon-mint', neonHex);
+    root.style.setProperty('--neon-mint-glow', neonGlow);
+    root.style.setProperty('--border-color-focus', `${neonHex}66`); // 40% opacity hex
+  }, [activeVibe]);
 
   return (
     <div className="app-container">
@@ -164,6 +227,17 @@ export default function App() {
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Settings Toggle Gear Button */}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="btn-secondary"
+            style={{ padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            id="settingsBtn"
+            title="Configurar Ambiente de Fondo"
+          >
+            <Settings size={16} />
+          </button>
+
           {isAdmin ? (
             <button 
               onClick={handleLogout} 
@@ -208,6 +282,70 @@ export default function App() {
           </section>
         )}
       </main>
+
+      {/* Slide-over Settings Sidebar */}
+      {isSettingsOpen && (
+        <div 
+          className="sidebar-backdrop" 
+          onClick={() => setIsSettingsOpen(false)}
+        />
+      )}
+      
+      <div className={`settings-sidebar ${isSettingsOpen ? 'open' : ''}`}>
+        <div className="sidebar-header">
+          <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-main)' }}>
+            Configuración
+          </h3>
+          <button 
+            onClick={() => setIsSettingsOpen(false)} 
+            className="btn-play-pause" 
+            title="Cerrar"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        
+        <div className="sidebar-content">
+          <div className="sidebar-section">
+            <h4 style={{ fontSize: '13px', textTransform: 'uppercase', fontFamily: 'var(--font-technical)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              Color del Fondo / Ambiente
+            </h4>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Cambia la combinación de colores del fondo y los elementos visuales de la interfaz.
+            </p>
+            
+            <div className="sidebar-vibe-list">
+              {[
+                { id: 'auto', label: 'Automático 🎵', desc: 'Se adapta al género de la música automáticamente.', color: 'var(--neon-mint)' },
+                { id: 'chill', label: 'Chill ❄️', desc: 'Fondo lento azul / púrpura, detalles cian.', color: '#00f0ff' },
+                { id: 'energy', label: 'Energy ⚡', desc: 'Ondas rápidas cian / rosa neón.', color: '#ff50b4' },
+                { id: 'vibrant', label: 'Vibrant 🔥', desc: 'Ondas cálidas color dorado / naranja.', color: '#ffd700' },
+                { id: 'intense', label: 'Intense 🎸', desc: 'Ondas agresivas rojo / carmesí.', color: '#e60f28' },
+                { id: 'ethereal', label: 'Ethereal ✨', desc: 'Ondas lentas color plata / blanco.', color: '#ffffff' }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  className={`sidebar-vibe-btn ${settingsVibe === opt.id ? 'active' : ''}`}
+                  style={{
+                    '--sidebar-vibe-accent': opt.color
+                  }}
+                  onClick={() => handleUpdateSettingsVibe(opt.id)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '700', fontSize: '14px' }}>{opt.label}</span>
+                    {settingsVibe === opt.id && (
+                      <span style={{ color: 'var(--sidebar-vibe-accent)', fontSize: '12px' }}>●</span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'left', display: 'block', width: '100%' }}>
+                    {opt.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Admin Login Modal */}
       <AdminLogin 
