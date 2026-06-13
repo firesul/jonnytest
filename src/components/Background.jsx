@@ -83,13 +83,18 @@ class PerlinNoise {
   }
 }
 
-export default function Background({ isPlaying = false }) {
+export default function Background({ isPlaying = false, analyser = null }) {
   const canvasRef = useRef(null);
   const isPlayingRef = useRef(isPlaying);
+  const analyserRef = useRef(analyser);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
+
+  useEffect(() => {
+    analyserRef.current = analyser;
+  }, [analyser]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -138,25 +143,45 @@ export default function Background({ isPlaying = false }) {
       const fov = 400;
       const depthOffset = 450;
 
-      // Audio beat reaction - Double pulse simulated heartbeat (lub-dub)
-      let heartBeat = 0;
-      if (isPlayingRef.current) {
-        const timeSecs = Date.now() / 1000;
-        const beatCycle = (timeSecs * 1.15) % 1.0; // ~70 BPM
-        if (beatCycle < 0.15) {
-          // Lub (first heart pulse)
-          heartBeat = Math.sin((beatCycle / 0.15) * Math.PI) * 0.45;
-        } else if (beatCycle >= 0.22 && beatCycle < 0.37) {
-          // Dub (second heart pulse)
-          heartBeat = Math.sin(((beatCycle - 0.22) / 0.15) * Math.PI) * 0.30;
+      // Read real frequency data from Web Audio AnalyserNode
+      let bass = 0;
+      let mids = 0;
+      let treble = 0;
+
+      const currentAnalyser = analyserRef.current;
+      if (currentAnalyser && isPlayingRef.current) {
+        const bufferLength = currentAnalyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        currentAnalyser.getByteFrequencyData(dataArray);
+
+        // Lows (Bass): bins 0 to 4 (approx 0Hz to 340Hz)
+        let bassSum = 0;
+        for (let i = 0; i < 5; i++) {
+          bassSum += dataArray[i];
         }
+        bass = (bassSum / 5) / 255;
+
+        // Mids: bins 5 to 25 (approx 340Hz to 1700Hz)
+        let midsSum = 0;
+        for (let i = 5; i < 26; i++) {
+          midsSum += dataArray[i];
+        }
+        mids = (midsSum / 21) / 255;
+
+        // Highs (Treble): bins 26 to 80 (approx 1700Hz to 5400Hz)
+        let trebleSum = 0;
+        for (let i = 26; i < 81; i++) {
+          trebleSum += dataArray[i];
+        }
+        treble = (trebleSum / 55) / 255;
       }
 
-      // Modulate topographic heights based on heartbeat pulses
+      // Modulate topographic heights and speed based on real-time frequencies
+      // Fall back to a gentle breathing animation when no audio is playing
       const baseHeight = 150;
-      const activeHeightScale = baseHeight * (1 + heartBeat * 0.6);
-      const activeSpeedMultiplier = 1 + heartBeat * 0.45;
-      const activeLineWidth = 0.9 * (1 + heartBeat * 0.4);
+      const activeHeightScale = baseHeight * (1 + (bass > 0.02 ? bass * 0.95 : Math.sin(t * 0.03) * 0.12));
+      const activeSpeedMultiplier = 1 + (mids > 0.02 ? mids * 1.5 : 0);
+      const activeLineWidth = 0.9 * (1 + (bass > 0.02 ? bass * 0.45 : 0));
 
       // 1. Calculate and Project All Grid Vertices
       for (let r = 0; r < ROWS; r++) {
@@ -255,18 +280,26 @@ export default function Background({ isPlaying = false }) {
 
           // Height-based glowing factors (peaks are brighter and larger)
           const heightFactor = Math.max(0, Math.min(1, (pt.worldZ + 75) / 150));
-          const pulseSize = (1.5 + Math.sin(t * 0.05 + r * c) * 0.5) * (1 + heartBeat * 0.5);
+          const ambientPulse = Math.sin(t * 0.05 + r * c) * 0.5;
+          const pulseSize = (1.5 + ambientPulse) * (1 + (treble > 0.02 ? treble * 1.5 : 0));
           const dotSize = pulseSize * depthFade * (0.8 + heightFactor * 1.2);
 
-          // Render glowing dot core (shifts from red to brighter orange/white core for peaks)
-          ctx.fillStyle = `rgba(255, ${42 + heightFactor * 100}, ${59 + heightFactor * 100}, ${depthFade * (0.4 + heightFactor * 0.5)})`;
+          // Render glowing dot core (shifts from red to brighter orange/white core for peaks/highs)
+          const redColor = 255;
+          const greenColor = Math.min(255, Math.floor(42 + heightFactor * 100 + treble * 113));
+          const blueColor = Math.min(255, Math.floor(59 + heightFactor * 100 + treble * 196));
+          const dotOpacity = depthFade * (0.4 + heightFactor * 0.5 + treble * 0.1);
+
+          ctx.fillStyle = `rgba(${redColor}, ${greenColor}, ${blueColor}, ${dotOpacity})`;
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, dotSize, 0, Math.PI * 2);
           ctx.fill();
 
           // Add surrounding glow aura to vertices
-          if (depthFade > 0.3 && (heightFactor > 0.6 || isPlayingRef.current)) {
-            ctx.fillStyle = `rgba(255, 42, 59, ${depthFade * 0.12 * (heightFactor * 0.5 + heartBeat * 0.5)})`;
+          const glowCheck = treble > 0.02 || isPlayingRef.current;
+          if (depthFade > 0.3 && (heightFactor > 0.6 || glowCheck)) {
+            const glowOpacity = depthFade * 0.12 * (heightFactor * 0.5 + (treble > 0.02 ? treble * 0.8 : 0.2));
+            ctx.fillStyle = `rgba(255, 42, 59, ${glowOpacity})`;
             ctx.beginPath();
             ctx.arc(pt.x, pt.y, dotSize * 3.5, 0, Math.PI * 2);
             ctx.fill();

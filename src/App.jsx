@@ -24,9 +24,39 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
+  // Web Audio API refs & state for real-time visualization
+  const audioCtxRef = useRef(null);
+  const analyserRef = useRef(null);
+  const [analyser, setAnalyser] = useState(null);
+
+  // Initialize AudioContext & AnalyserNode lazily on user gesture
+  const initAudioContext = () => {
+    if (audioCtxRef.current) return;
+
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContextClass();
+      const node = ctx.createAnalyser();
+      node.fftSize = 256; // 128 frequency bins (plenty for high, mid, low separation)
+
+      // Route Audio -> Analyser -> Output Speakers
+      const source = ctx.createMediaElementSource(audioRef.current);
+      source.connect(node);
+      node.connect(ctx.destination);
+
+      audioCtxRef.current = ctx;
+      analyserRef.current = node;
+      setAnalyser(node);
+    } catch (e) {
+      console.error("Web Audio API failed to initialize:", e);
+    }
+  };
+
   // Initialize Audio & Subscriptions
   useEffect(() => {
-    audioRef.current = new Audio();
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous"; // Mandatory for CORS to read pixels/frequencies from iTunes CDN
+    audioRef.current = audio;
     
     const handleEnded = () => {
       setIsPlaying(false);
@@ -40,9 +70,9 @@ export default function App() {
       setIsPlaying(true);
     };
 
-    audioRef.current.addEventListener('ended', handleEnded);
-    audioRef.current.addEventListener('pause', handlePause);
-    audioRef.current.addEventListener('play', handlePlay);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('play', handlePlay);
 
     // Load admin state from sessionStorage
     const savedAdmin = sessionStorage.getItem('vibelist_isAdmin');
@@ -56,11 +86,12 @@ export default function App() {
     });
 
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.removeEventListener('ended', handleEnded);
-        audioRef.current.removeEventListener('pause', handlePause);
-        audioRef.current.removeEventListener('play', handlePlay);
+      audio.pause();
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('play', handlePlay);
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch(e => console.error("Error closing AudioContext:", e));
       }
       unsubscribe();
     };
@@ -115,6 +146,12 @@ export default function App() {
   const handleTogglePlay = (song) => {
     if (!song.previewUrl) return;
 
+    // Trigger AudioContext initialization or resume on gesture
+    initAudioContext();
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+
     if (currentPlayingSong && currentPlayingSong.id === song.id) {
       if (isPlaying) {
         audioRef.current.pause();
@@ -142,8 +179,8 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* 3D Topographic Relieve Canvas Background (Locked Red Contours) */}
-      <Background isPlaying={isPlaying} />
+      {/* 3D Topographic Relieve Canvas Background (Reacting to Web Audio API) */}
+      <Background isPlaying={isPlaying} analyser={analyser} />
 
       {/* Navigation / Header */}
       <nav className="navbar" id="mainNavbar">
