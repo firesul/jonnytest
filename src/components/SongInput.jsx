@@ -82,39 +82,7 @@ const mapGenreToVibe = (genreName) => {
   return 'chill'; // default fallback
 };
 
-// Promise-based JSONP helper for bypassing iOS/WebKit CORS and Mixed Content blocking on iTunes API
-const fetchJsonp = (url, timeout = 5000) => {
-  return new Promise((resolve, reject) => {
-    const callbackName = `jsonp_callback_${Math.round(100000 * Math.random())}`;
-    const script = document.createElement('script');
-    const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error('JSONP Timeout'));
-    }, timeout);
 
-    const cleanup = () => {
-      clearTimeout(timer);
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-      delete window[callbackName];
-    };
-
-    window[callbackName] = (data) => {
-      cleanup();
-      resolve(data);
-    };
-
-    const separator = url.includes('?') ? '&' : '?';
-    script.src = `${url}${separator}callback=${callbackName}`;
-    script.onerror = () => {
-      cleanup();
-      reject(new Error('JSONP Load Failed'));
-    };
-
-    document.body.appendChild(script);
-  });
-};
 
 export default function SongInput({ onAddSong }) {
   const [inputValue, setInputValue] = useState('');
@@ -237,9 +205,10 @@ export default function SongInput({ onAddSong }) {
 
         if (trackId && /^\d+$/.test(trackId)) {
           try {
-            const itunesData = await fetchJsonp(
-              `https://itunes.apple.com/lookup?id=${trackId}&country=${country}`
+            const itunesRes = await fetch(
+              `/api/itunes/lookup?id=${trackId}&country=${country}`
             );
+            const itunesData = await itunesRes.json();
             const trackItem = itunesData.results.find(item => item.wrapperType === 'track');
             
             if (trackItem) {
@@ -303,9 +272,10 @@ export default function SongInput({ onAddSong }) {
         if (title) {
           try {
             const searchQuery = title + ' ' + (artist !== 'Spotify' ? artist : '');
-            const itunesData = await fetchJsonp(
-              `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&media=music&limit=1`
+            const itunesRes = await fetch(
+              `/api/itunes/search?term=${encodeURIComponent(searchQuery)}&media=music&limit=1`
             );
+            const itunesData = await itunesRes.json();
             if (itunesData.results && itunesData.results.length > 0) {
               const item = itunesData.results[0];
               return {
@@ -351,9 +321,10 @@ export default function SongInput({ onAddSong }) {
           }
           
           try {
-            const itunesData = await fetchJsonp(
-              `https://itunes.apple.com/search?term=${encodeURIComponent(cleanTitle + ' ' + artist)}&media=music&limit=1`
+            const itunesRes = await fetch(
+              `/api/itunes/search?term=${encodeURIComponent(cleanTitle + ' ' + artist)}&media=music&limit=1`
             );
+            const itunesData = await itunesRes.json();
             if (itunesData.results && itunesData.results.length > 0) {
               const item = itunesData.results[0];
               return {
@@ -446,9 +417,13 @@ export default function SongInput({ onAddSong }) {
     let active = true;
     setLoading(true);
 
-    fetchJsonp(
-      `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&limit=5`
+    fetch(
+      `/api/itunes/search?term=${encodeURIComponent(term)}&media=music&limit=5`
     )
+      .then((res) => {
+        if (!res.ok) throw new Error("API Network error");
+        return res.json();
+      })
       .then((data) => {
         if (!active) return;
         if (data.results && data.results.length > 0) {
@@ -544,9 +519,10 @@ export default function SongInput({ onAddSong }) {
           };
         }
       } else {
-        const data = await fetchJsonp(
-          `https://itunes.apple.com/search?term=${encodeURIComponent(inputValue)}&media=music&limit=1`
+        const response = await fetch(
+          `/api/itunes/search?term=${encodeURIComponent(inputValue)}&media=music&limit=1`
         );
+        const data = await response.json();
         if (data.results && data.results.length > 0) {
           const item = data.results[0];
           const finalVibe = mapGenreToVibe(item.primaryGenreName);
