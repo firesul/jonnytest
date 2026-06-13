@@ -316,32 +316,45 @@ export default function App() {
             
             <div className="sidebar-vibe-list">
               {[
-                { id: 'auto', label: 'Automático 🎵', desc: 'Se adapta al género de la música automáticamente.', color: 'var(--neon-mint)' },
-                { id: 'chill', label: 'Chill ❄️', desc: 'Fondo lento azul / púrpura, detalles cian.', color: '#00f0ff' },
-                { id: 'energy', label: 'Energy ⚡', desc: 'Ondas rápidas cian / rosa neón.', color: '#ff50b4' },
-                { id: 'vibrant', label: 'Vibrant 🔥', desc: 'Ondas cálidas color dorado / naranja.', color: '#ffd700' },
-                { id: 'intense', label: 'Intense 🎸', desc: 'Ondas agresivas rojo / carmesí.', color: '#e60f28' },
-                { id: 'ethereal', label: 'Ethereal ✨', desc: 'Ondas lentas color plata / blanco.', color: '#ffffff' }
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  className={`sidebar-vibe-btn ${settingsVibe === opt.id ? 'active' : ''}`}
-                  style={{
-                    '--sidebar-vibe-accent': opt.color
-                  }}
-                  onClick={() => handleUpdateSettingsVibe(opt.id)}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <span style={{ fontWeight: '700', fontSize: '14px' }}>{opt.label}</span>
-                    {settingsVibe === opt.id && (
-                      <span style={{ color: 'var(--sidebar-vibe-accent)', fontSize: '12px' }}>●</span>
-                    )}
-                  </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'left', display: 'block', width: '100%' }}>
-                    {opt.desc}
-                  </span>
-                </button>
-              ))}
+                { id: 'auto', label: 'Automático 🎵', desc: 'Se adapta al género de la música automáticamente.', color: 'var(--neon-mint)', hex: '#2affbb' },
+                { id: 'chill', label: 'Azul y Púrpura ❄️', desc: 'Tonos azul profundo y púrpura.', color: '#00f0ff', hex: '#00f0ff' },
+                { id: 'energy', label: 'Rosa y Violeta ⚡', desc: 'Tonos cian y rosa neón.', color: '#ff50b4', hex: '#ff50b4' },
+                { id: 'vibrant', label: 'Dorado y Naranja 🔥', desc: 'Tonos dorados y naranja cálido.', color: '#ffd700', hex: '#ffd700' },
+                { id: 'intense', label: 'Rojo y Fuego 🎸', desc: 'Tonos rojo fuego y carmesí.', color: '#e60f28', hex: '#e60f28' },
+                { id: 'ethereal', label: 'Plata y Blanco ✨', desc: 'Tonos plata y blanco puro.', color: '#ffffff', hex: '#ffffff' }
+              ].map((opt) => {
+                const borderHex = opt.id === 'auto' ? 'var(--neon-mint)' : opt.hex;
+                const textHex = opt.id === 'auto' ? 'var(--neon-mint)' : opt.hex;
+                const isSelected = settingsVibe === opt.id;
+                
+                return (
+                  <button
+                    key={opt.id}
+                    className={`sidebar-vibe-btn ${isSelected ? 'active' : ''}`}
+                    style={{
+                      '--sidebar-vibe-accent': opt.color,
+                      borderColor: isSelected ? borderHex : `${borderHex}33`, // 100% vs 20% opacity outline
+                      color: isSelected ? textHex : 'var(--text-muted)',
+                      background: isSelected ? `${borderHex}1e` : 'rgba(255, 255, 255, 0.01)',
+                      boxShadow: isSelected ? `0 0 10px ${borderHex}44` : 'none',
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                    onClick={() => handleUpdateSettingsVibe(opt.id)}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '700', fontSize: '14px', color: isSelected ? textHex : 'var(--text-main)' }}>
+                        {opt.label}
+                      </span>
+                      {isSelected && (
+                        <span style={{ color: textHex, fontSize: '12px' }}>●</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'left', display: 'block', width: '100%' }}>
+                      {opt.desc}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

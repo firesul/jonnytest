@@ -433,6 +433,7 @@ export default function SongInput({ onAddSong }) {
 
   const handleSelectSuggestion = (song) => {
     const detectedVibe = mapGenreToVibe(song.primaryGenreName);
+    const resolvedGenre = song.primaryGenreName || 'Pop';
     
     onAddSong({
       title: song.title,
@@ -441,14 +442,16 @@ export default function SongInput({ onAddSong }) {
       duration: song.duration,
       previewUrl: song.previewUrl,
       url: song.url,
-      vibe: detectedVibe
+      vibe: detectedVibe,
+      genre: resolvedGenre
     });
 
     setSuccessDetails({
       title: song.title,
       artist: song.artist,
       artwork: song.artwork,
-      vibe: detectedVibe
+      vibe: detectedVibe,
+      genre: resolvedGenre
     });
     
     setShowSuccess(true);
@@ -472,7 +475,8 @@ export default function SongInput({ onAddSong }) {
           const finalVibe = mapGenreToVibe(metadata.primaryGenreName);
           songData = {
             ...metadata,
-            vibe: finalVibe
+            vibe: finalVibe,
+            genre: metadata.primaryGenreName || 'Enlace Web'
           };
         } else {
           songData = {
@@ -482,7 +486,8 @@ export default function SongInput({ onAddSong }) {
             duration: 0,
             previewUrl: '',
             url: inputValue,
-            vibe: 'chill'
+            vibe: 'chill',
+            genre: 'Enlace Web'
           };
         }
       } else {
@@ -500,7 +505,8 @@ export default function SongInput({ onAddSong }) {
             duration: Math.round(item.trackTimeMillis / 1000),
             previewUrl: item.previewUrl || '',
             url: item.trackViewUrl || '',
-            vibe: finalVibe
+            vibe: finalVibe,
+            genre: item.primaryGenreName || 'Pop'
           };
         } else {
           songData = {
@@ -510,7 +516,8 @@ export default function SongInput({ onAddSong }) {
             duration: 0,
             previewUrl: '',
             url: '',
-            vibe: 'chill'
+            vibe: 'chill',
+            genre: 'Desconocido'
           };
         }
       }
@@ -521,7 +528,8 @@ export default function SongInput({ onAddSong }) {
           title: songData.title,
           artist: songData.artist,
           artwork: songData.artwork,
-          vibe: songData.vibe
+          vibe: songData.vibe,
+          genre: songData.genre
         });
         setShowSuccess(true);
         setInputValue('');
@@ -536,12 +544,6 @@ export default function SongInput({ onAddSong }) {
   };
 
   if (showSuccess) {
-    const vibeLabel = 
-      successDetails?.vibe === 'chill' ? 'Chill ❄️' :
-      successDetails?.vibe === 'energy' ? 'Energy ⚡' :
-      successDetails?.vibe === 'vibrant' ? 'Vibrant 🔥' :
-      successDetails?.vibe === 'intense' ? 'Intense 🎸' : 'Ethereal ✨';
-
     return (
       <div className="glass-card success-card-container" id="successSongCard">
         <div className="success-checkmark-circle">
@@ -566,7 +568,7 @@ export default function SongInput({ onAddSong }) {
             <div className="success-badge-info">
               <div className="success-badge-title">{successDetails.title}</div>
               <div className="success-badge-artist">{successDetails.artist}</div>
-              <div className="success-badge-vibe">Vibra: {vibeLabel}</div>
+              <div className="success-badge-vibe">Género: {successDetails.genre}</div>
             </div>
           </div>
         )}
