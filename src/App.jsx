@@ -241,12 +241,12 @@ export default function App() {
 
       {/* Main Content Layout - Stacked Centered Column */}
       <main className="layout-grid">
-        <section className="form-column" style={{ width: '100%' }}>
+        <section className="form-column" style={{ width: '100%', position: 'relative', zIndex: 10 }}>
           <SongInput onAddSong={handleAddSong} />
         </section>
 
         {isAdmin && (
-          <section className="list-column" style={{ width: '100%' }}>
+          <section className="list-column" style={{ width: '100%', position: 'relative', zIndex: 1 }}>
             <SongList 
               songs={songs} 
               isAdmin={isAdmin}

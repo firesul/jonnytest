@@ -84,6 +84,7 @@ const mapGenreToVibe = (genreName) => {
 
 export default function SongInput({ onAddSong }) {
   const [inputValue, setInputValue] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -94,6 +95,14 @@ export default function SongInput({ onAddSong }) {
   const [successDetails, setSuccessDetails] = useState(null);
   
   const dropdownRef = useRef(null);
+
+  // Debounce input value changes to prevent hammering the iTunes search API
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(inputValue);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inputValue]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -376,60 +385,77 @@ export default function SongInput({ onAddSong }) {
     }
   };
 
-  const handleInputChange = async (e) => {
+  const handleInputChange = (e) => {
     const value = e.target.value;
     setInputValue(value);
     setError('');
+  };
 
-    if (value.trim().length < 3) {
+  // Perform search queries on the iTunes Search API using the debounced searchQuery state
+  useEffect(() => {
+    if (searchQuery.trim().length < 3) {
       setSuggestions([]);
       setShowDropdown(false);
       return;
     }
 
-    const isUrl = value.startsWith('http://') || value.startsWith('https://');
-    let searchQuery = value;
+    const isUrl = searchQuery.startsWith('http://') || searchQuery.startsWith('https://');
+    let term = searchQuery;
 
     if (isUrl) {
-      const parsedQuery = cleanUrlToSearchQuery(value);
+      const parsedQuery = cleanUrlToSearchQuery(searchQuery);
       if (!parsedQuery) {
         setSuggestions([]);
         setShowDropdown(false);
         return;
       }
-      searchQuery = parsedQuery;
+      term = parsedQuery;
     }
 
+    let active = true;
     setLoading(true);
-    try {
-      const response = await fetch(
-        `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&media=music&limit=5`
-      );
-      const data = await response.json();
-      
-      if (data.results && data.results.length > 0) {
-        const formatted = data.results.map((item) => ({
-          trackId: item.trackId,
-          title: item.trackName,
-          artist: item.artistName,
-          artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : '',
-          duration: Math.round(item.trackTimeMillis / 1000),
-          previewUrl: item.previewUrl || '',
-          url: isUrl ? value : item.trackViewUrl || '',
-          primaryGenreName: item.primaryGenreName
-        }));
-        setSuggestions(formatted);
-        setShowDropdown(true);
-      } else {
+
+    fetch(
+      `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&limit=5`
+    )
+      .then((res) => {
+        if (!res.ok) throw new Error("API Network error");
+        return res.json();
+      })
+      .then((data) => {
+        if (!active) return;
+        if (data.results && data.results.length > 0) {
+          const formatted = data.results.map((item) => ({
+            trackId: item.trackId,
+            title: item.trackName,
+            artist: item.artistName,
+            artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : '',
+            duration: Math.round(item.trackTimeMillis / 1000),
+            previewUrl: item.previewUrl || '',
+            url: isUrl ? searchQuery : item.trackViewUrl || '',
+            primaryGenreName: item.primaryGenreName
+          }));
+          setSuggestions(formatted);
+          setShowDropdown(true);
+        } else {
+          setSuggestions([]);
+          setShowDropdown(false);
+        }
+      })
+      .catch((err) => {
+        if (!active) return;
+        console.error('Error fetching search results from iTunes:', err);
         setSuggestions([]);
         setShowDropdown(false);
-      }
-    } catch (err) {
-      console.error('Error fetching search results from iTunes:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [searchQuery]);
 
   const handleSelectSuggestion = (song) => {
     const detectedVibe = mapGenreToVibe(song.primaryGenreName);
@@ -621,7 +647,10 @@ export default function SongInput({ onAddSong }) {
                     <div
                       key={song.trackId || Math.random()}
                       className="suggestion-item"
-                      onClick={() => handleSelectSuggestion(song)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSelectSuggestion(song);
+                      }}
                     >
                       {song.artwork ? (
                         <img src={song.artwork} alt={song.title} className="suggestion-art" />
