@@ -6,10 +6,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api/itunes': {
+      '/api/music': {
         target: 'https://itunes.apple.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/itunes/, '')
+        rewrite: (path) => path.replace(/^\/api\/music/, '')
       }
     }
   }
