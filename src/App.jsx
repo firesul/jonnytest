@@ -5,14 +5,13 @@ import SongList from './components/SongList';
 import AdminLogin from './components/AdminLogin';
 import Background from './components/Background';
 import { 
-  Music, 
+  Heart,
   Lock, 
   LogOut, 
   Play, 
   Pause, 
   X, 
-  Volume2,
-  Settings
+  Volume2 
 } from 'lucide-react';
 
 export default function App() {
@@ -20,12 +19,6 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   
-  // Configuration Settings State
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsVibe, setSettingsVibe] = useState(() => {
-    return localStorage.getItem('vibelist_background_mode') || 'auto';
-  });
-
   // Audio Playback State
   const [currentPlayingSong, setCurrentPlayingSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -147,97 +140,19 @@ export default function App() {
     setIsPlaying(false);
   };
 
-  // Handle manual sidebar setting updates
-  const handleUpdateSettingsVibe = (vibe) => {
-    setSettingsVibe(vibe);
-    localStorage.setItem('vibelist_background_mode', vibe);
-  };
-
-  // Calculate active background vibe:
-  // If manual vibe is selected (not 'auto') -> use it directly.
-  // Otherwise, fallback to the dynamic music-based vibe:
-  // (active playing preview song > latest queue song > default 'chill').
-  const activeVibe = settingsVibe !== 'auto'
-    ? settingsVibe
-    : ((currentPlayingSong && isPlaying)
-        ? (currentPlayingSong.vibe || 'chill')
-        : (songs.length > 0 ? (songs[0].vibe || 'chill') : 'chill'));
-
-  // Effect to dynamically adjust CSS Accent Variables on HTML root based on active Vibe
-  useEffect(() => {
-    const root = document.documentElement;
-    
-    let primaryHex = '#004d3d';       // default green-emerald
-    let primaryHoverHex = '#00604c';
-    let neonHex = '#2affbb';          // default mint
-    let neonGlow = 'rgba(42, 255, 187, 0.35)';
-
-    switch (activeVibe) {
-      case 'chill':
-        primaryHex = '#00264d';
-        primaryHoverHex = '#003c7a';
-        neonHex = '#00f0ff';
-        neonGlow = 'rgba(0, 240, 255, 0.35)';
-        break;
-      case 'energy':
-        primaryHex = '#420054';
-        primaryHoverHex = '#5b0073';
-        neonHex = '#ff50b4';
-        neonGlow = 'rgba(255, 80, 180, 0.35)';
-        break;
-      case 'vibrant':
-        primaryHex = '#544300';
-        primaryHoverHex = '#705a00';
-        neonHex = '#ffd700';
-        neonGlow = 'rgba(255, 215, 0, 0.35)';
-        break;
-      case 'intense':
-        primaryHex = '#54020a';
-        primaryHoverHex = '#70030e';
-        neonHex = '#e60f28';
-        neonGlow = 'rgba(230, 15, 40, 0.35)';
-        break;
-      case 'ethereal':
-        primaryHex = '#242424';
-        primaryHoverHex = '#383838';
-        neonHex = '#ffffff';
-        neonGlow = 'rgba(255, 255, 255, 0.35)';
-        break;
-      default:
-        break;
-    }
-
-    root.style.setProperty('--primary-emerald', primaryHex);
-    root.style.setProperty('--primary-emerald-hover', primaryHoverHex);
-    root.style.setProperty('--neon-mint', neonHex);
-    root.style.setProperty('--neon-mint-glow', neonGlow);
-    root.style.setProperty('--border-color-focus', `${neonHex}66`); // 40% opacity hex
-  }, [activeVibe]);
-
   return (
     <div className="app-container">
-      {/* Responsive Animated Canvas Background */}
-      <Background vibe={activeVibe} isPlaying={isPlaying} />
+      {/* 3D Topographic Relieve Canvas Background (Locked Red Contours) */}
+      <Background isPlaying={isPlaying} />
 
       {/* Navigation / Header */}
       <nav className="navbar" id="mainNavbar">
         <div className="logo" id="appLogo">
-          <Music size={24} style={{ color: 'var(--neon-mint)' }} />
-          <span>Playlist</span>
+          <Heart size={24} style={{ color: '#ff2a3b', fill: '#ff2a3b' }} />
+          <span>Heart</span>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Settings Toggle Gear Button */}
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="btn-secondary"
-            style={{ padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            id="settingsBtn"
-            title="Configurar Ambiente de Fondo"
-          >
-            <Settings size={16} />
-          </button>
-
           {isAdmin ? (
             <button 
               onClick={handleLogout} 
@@ -262,14 +177,14 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Main Content Layout - Role-based View */}
-      <main className={isAdmin ? "layout-grid" : "layout-single-centered"}>
-        <section className="form-column">
+      {/* Main Content Layout - Stacked Centered Column */}
+      <main className="layout-grid">
+        <section className="form-column" style={{ width: '100%' }}>
           <SongInput onAddSong={handleAddSong} />
         </section>
 
         {isAdmin && (
-          <section className="list-column">
+          <section className="list-column" style={{ width: '100%' }}>
             <SongList 
               songs={songs} 
               isAdmin={isAdmin}
@@ -282,83 +197,6 @@ export default function App() {
           </section>
         )}
       </main>
-
-      {/* Slide-over Settings Sidebar */}
-      {isSettingsOpen && (
-        <div 
-          className="sidebar-backdrop" 
-          onClick={() => setIsSettingsOpen(false)}
-        />
-      )}
-      
-      <div className={`settings-sidebar ${isSettingsOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
-          <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-main)' }}>
-            Configuración
-          </h3>
-          <button 
-            onClick={() => setIsSettingsOpen(false)} 
-            className="btn-play-pause" 
-            title="Cerrar"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        
-        <div className="sidebar-content">
-          <div className="sidebar-section">
-            <h4 style={{ fontSize: '13px', textTransform: 'uppercase', fontFamily: 'var(--font-technical)', color: 'var(--text-muted)', marginBottom: '4px' }}>
-              Color del Fondo / Ambiente
-            </h4>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Cambia la combinación de colores del fondo y los elementos visuales de la interfaz.
-            </p>
-            
-            <div className="sidebar-vibe-list">
-              {[
-                { id: 'auto', label: 'Automático 🎵', desc: 'Se adapta al género de la música automáticamente.', color: 'var(--neon-mint)', hex: '#2affbb' },
-                { id: 'chill', label: 'Azul y Púrpura ❄️', desc: 'Tonos azul profundo y púrpura.', color: '#00f0ff', hex: '#00f0ff' },
-                { id: 'energy', label: 'Rosa y Violeta ⚡', desc: 'Tonos cian y rosa neón.', color: '#ff50b4', hex: '#ff50b4' },
-                { id: 'vibrant', label: 'Dorado y Naranja 🔥', desc: 'Tonos dorados y naranja cálido.', color: '#ffd700', hex: '#ffd700' },
-                { id: 'intense', label: 'Rojo y Fuego 🎸', desc: 'Tonos rojo fuego y carmesí.', color: '#e60f28', hex: '#e60f28' },
-                { id: 'ethereal', label: 'Plata y Blanco ✨', desc: 'Tonos plata y blanco puro.', color: '#ffffff', hex: '#ffffff' }
-              ].map((opt) => {
-                const borderHex = opt.id === 'auto' ? 'var(--neon-mint)' : opt.hex;
-                const textHex = opt.id === 'auto' ? 'var(--neon-mint)' : opt.hex;
-                const isSelected = settingsVibe === opt.id;
-                
-                return (
-                  <button
-                    key={opt.id}
-                    className={`sidebar-vibe-btn ${isSelected ? 'active' : ''}`}
-                    style={{
-                      '--sidebar-vibe-accent': opt.color,
-                      borderColor: isSelected ? borderHex : `${borderHex}33`, // 100% vs 20% opacity outline
-                      color: isSelected ? textHex : 'var(--text-muted)',
-                      background: isSelected ? `${borderHex}1e` : 'rgba(255, 255, 255, 0.01)',
-                      boxShadow: isSelected ? `0 0 10px ${borderHex}44` : 'none',
-                      transition: 'all 0.2s ease-in-out'
-                    }}
-                    onClick={() => handleUpdateSettingsVibe(opt.id)}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                      <span style={{ fontWeight: '700', fontSize: '14px', color: isSelected ? textHex : 'var(--text-main)' }}>
-                        {opt.label}
-                      </span>
-                      {isSelected && (
-                        <span style={{ color: textHex, fontSize: '12px' }}>●</span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'left', display: 'block', width: '100%' }}>
-                      {opt.desc}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Admin Login Modal */}
       <AdminLogin 
@@ -378,7 +216,7 @@ export default function App() {
             />
           ) : (
             <div style={{ width: '40px', height: '40px', borderRadius: '4px', background: 'var(--primary-emerald)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Music size={18} />
+              <Heart size={18} style={{ color: 'var(--neon-mint)' }} />
             </div>
           )}
           

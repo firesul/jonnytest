@@ -588,7 +588,7 @@ export default function SongInput({ onAddSong }) {
     <div className="glass-card" style={{ position: 'relative' }} id="addSongCard">
       <h2 style={{ fontSize: '18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Music size={18} style={{ color: 'var(--neon-mint)' }} />
-        Agregar a la Lista
+        ¿Qué te gustaría escuchar?
       </h2>
       
       {error && <div className="error-message">{error}</div>}

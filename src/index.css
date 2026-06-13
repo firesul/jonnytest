@@ -1,19 +1,19 @@
 /* Design Tokens & Theme Variables */
 :root {
-  --bg-color: #060907;
-  --surface-color: rgba(17, 20, 19, 0.6);
-  --surface-color-solid: #111413;
-  --border-color: rgba(42, 255, 187, 0.1);
-  --border-color-focus: rgba(42, 255, 187, 0.4);
+  --bg-color: #050202;
+  --surface-color: rgba(22, 12, 14, 0.65);
+  --surface-color-solid: #160c0e;
+  --border-color: rgba(255, 42, 59, 0.12);
+  --border-color-focus: rgba(255, 42, 59, 0.45);
   
-  --primary-emerald: #004d3d;
-  --primary-emerald-hover: #00604c;
-  --neon-mint: #2affbb;
-  --neon-mint-glow: rgba(42, 255, 187, 0.35);
+  --primary-emerald: #4a030a;
+  --primary-emerald-hover: #6b040e;
+  --neon-mint: #ff2a3b;
+  --neon-mint-glow: rgba(255, 42, 59, 0.35);
   
-  --text-main: #e1e3e0;
-  --text-muted: #bfc9c3;
-  --text-dark: #0c0f0e;
+  --text-main: #e8e3e3;
+  --text-muted: #cbbab9;
+  --text-dark: #0a0304;
   --error-color: #ffb4ab;
   --error-bg: rgba(147, 0, 10, 0.2);
 
@@ -73,18 +73,15 @@ h1, h2, h3 {
   letter-spacing: -0.02em;
 }
 
-/* Layout Grid */
+/* Layout Grid (Stacked Single Column Centered) */
 .layout-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
-}
-
-@media (min-width: 768px) {
-  .layout-grid {
-    grid-template-columns: 380px 1fr;
-    align-items: start;
-  }
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 0;
 }
 
 /* Glassmorphism Cards */

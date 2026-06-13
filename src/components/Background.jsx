@@ -6,7 +6,7 @@ class PerlinNoise {
     this.p = new Uint8Array(256);
     for (let i = 0; i < 256; i++) this.p[i] = i;
     
-    // Shuffle the permutation table randomly
+    // Shuffle permutation table
     for (let i = 255; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       const tmp = this.p[i];
@@ -83,87 +83,9 @@ class PerlinNoise {
   }
 }
 
-// --- VIBE DECORATION PALETTES & SETTINGS ---
-const VIBE_CONFIGS = {
-  chill: {
-    colors: [
-      { r: 220, g: 235, b: 255, a: 0.65 }, // Light Ice Blue
-      { r: 80, g: 140, b: 220, a: 0.45 },  // Medium Cyan Blue
-      { r: 40, g: 30, b: 120, a: 0.25 }    // Deep Blue-Purple
-    ],
-    speed: 0.9,
-    scale: 0.0013,
-    trail: 0.94,
-    particles: 2200
-  },
-  energy: {
-    colors: [
-      { r: 255, g: 80, b: 180, a: 0.70 },  // Electric Pink
-      { r: 0, g: 230, b: 255, a: 0.55 },   // Electric Cyan
-      { r: 120, g: 0, b: 240, a: 0.35 }    // Electric Violet
-    ],
-    speed: 2.2,
-    scale: 0.0028,
-    trail: 0.88,
-    particles: 3000
-  },
-  vibrant: {
-    colors: [
-      { r: 255, g: 215, b: 0, a: 0.70 },   // Shiny Gold
-      { r: 255, g: 110, b: 0, a: 0.50 },   // Warm Sun Orange
-      { r: 255, g: 20, b: 120, a: 0.40 }   // Hot Pinkish Red
-    ],
-    speed: 1.6,
-    scale: 0.0020,
-    trail: 0.91,
-    particles: 2600
-  },
-  intense: {
-    colors: [
-      { r: 255, g: 190, b: 80, a: 0.75 },  // Fire Yellow-Orange
-      { r: 230, g: 15, b: 40, a: 0.50 },   // Intense Crimson
-      { r: 70, g: 15, b: 15, a: 0.30 }     // Dark Blood Red
-    ],
-    speed: 2.8,
-    scale: 0.0035,
-    trail: 0.85,
-    particles: 3500
-  },
-  ethereal: {
-    colors: [
-      { r: 255, g: 255, b: 255, a: 0.70 }, // Pure White
-      { r: 195, g: 205, b: 215, a: 0.45 }, // Soft Platinum Silver
-      { r: 140, g: 150, b: 200, a: 0.25 }  // Whispering Pale Lavender
-    ],
-    speed: 0.4,
-    scale: 0.0008,
-    trail: 0.96,
-    particles: 1600
-  }
-};
-
-export default function Background({ vibe = 'chill', isPlaying = false }) {
+export default function Background({ isPlaying = false }) {
   const canvasRef = useRef(null);
-  
-  // Keep interpolation values in refs for frame-by-frame updates without triggers
-  const targetConfig = useRef(VIBE_CONFIGS[vibe] || VIBE_CONFIGS.chill);
-  const currentConfig = useRef({
-    colors: JSON.parse(JSON.stringify(targetConfig.current.colors)),
-    speed: targetConfig.current.speed,
-    scale: targetConfig.current.scale,
-    trail: targetConfig.current.trail,
-    particles: targetConfig.current.particles
-  });
-  
   const isPlayingRef = useRef(isPlaying);
-  const currentVibeName = useRef(vibe);
-
-  // Sync refs when props change
-  useEffect(() => {
-    const config = VIBE_CONFIGS[vibe] || VIBE_CONFIGS.chill;
-    targetConfig.current = config;
-    currentVibeName.current = vibe;
-  }, [vibe]);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -172,166 +94,179 @@ export default function Background({ vibe = 'chill', isPlaying = false }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d', { alpha: false });
     let animationId = null;
     let t = 0;
-    
+
     const noiseEngine = new PerlinNoise();
-    let particles = [];
-    
-    // Set canvas dimensions
+
+    // 3D Grid Parameters
+    const COLS = 42;
+    const ROWS = 32;
+
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      initParticles();
     };
 
-    // Particle trace definition
-    class FlowParticle {
-      constructor() {
-        this.reset();
-      }
-
-      reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.px = this.x;
-        this.py = this.y;
-        this.age = 0;
-        this.maxAge = 60 + Math.random() * 120;
-        // Assign a color index (0, 1, or 2)
-        this.colorIdx = Math.random() > 0.65 ? 0 : Math.random() > 0.4 ? 1 : 2;
-      }
-
-      update(speed, scale) {
-        // Sample noise in 3D (x, y, time)
-        const angle = noiseEngine.noise(
-          this.x * scale,
-          this.y * scale,
-          t * 0.0003
-        ) * Math.PI * 3.8;
-
-        this.px = this.x;
-        this.py = this.y;
-
-        this.x += Math.cos(angle) * speed;
-        this.y += Math.sin(angle) * speed;
-        this.age++;
-
-        // Reset if boundary hit or aged out
-        if (
-          this.x < 0 || this.x > canvas.width ||
-          this.y < 0 || this.y > canvas.height ||
-          this.age > this.maxAge
-        ) {
-          this.reset();
-        }
-      }
-
-      draw(colors, widthMultiplier) {
-        const lifeRatio = 1 - this.age / this.maxAge;
-        const colorSource = colors[this.colorIdx];
-        if (!colorSource) return;
-
-        // Apply visual properties
-        ctx.strokeStyle = `rgba(${colorSource.r}, ${colorSource.g}, ${colorSource.b}, ${lifeRatio * colorSource.a})`;
-        ctx.lineWidth = 0.65 * widthMultiplier;
-        ctx.beginPath();
-        ctx.moveTo(this.px, this.py);
-        ctx.lineTo(this.x, this.y);
-        ctx.stroke();
-      }
-    }
-
-    const initParticles = () => {
-      particles = [];
-      const count = currentConfig.current.particles;
-      for (let i = 0; i < count; i++) {
-        const p = new FlowParticle();
-        // Warm up coordinates so particles aren't clustered at start
-        p.x = Math.random() * canvas.width;
-        p.y = Math.random() * canvas.height;
-        p.px = p.x;
-        p.py = p.y;
-        particles.push(p);
-      }
-    };
-
-    // Initialize dimensions and initial setup
-    resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
-    
-    // Smooth frame render loop
+    resizeCanvas();
+
+    // Smooth 3D projection frame loop
     const render = () => {
       animationId = requestAnimationFrame(render);
-      
-      // 1. Interpolate configuration parameters (Lerp) towards Target Config
-      const target = targetConfig.current;
-      const current = currentConfig.current;
-      const lerpFactor = 0.035; // smooth transitions (approx 2-3s to blend)
 
-      current.speed += (target.speed - current.speed) * lerpFactor;
-      current.scale += (target.scale - current.scale) * lerpFactor;
-      current.trail += (target.trail - current.trail) * lerpFactor;
-      
-      // Interpolate target color arrays (RGB channels)
-      for (let i = 0; i < 3; i++) {
-        current.colors[i].r += (target.colors[i].r - current.colors[i].r) * lerpFactor;
-        current.colors[i].g += (target.colors[i].g - current.colors[i].g) * lerpFactor;
-        current.colors[i].b += (target.colors[i].b - current.colors[i].b) * lerpFactor;
-        current.colors[i].a += (target.colors[i].a - current.colors[i].a) * lerpFactor;
-      }
+      // Pitch black screen clear
+      ctx.fillStyle = '#050202'; // Locked app background color
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Adjust particle count slowly if target differs
-      if (Math.abs(target.particles - particles.length) > 50) {
-        if (target.particles > particles.length) {
-          // Birth more particles
-          for (let i = 0; i < 15; i++) {
-            particles.push(new FlowParticle());
-          }
-        } else {
-          // Prune particles
-          particles.splice(0, 15);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height * 0.4; // Slightly elevated center horizon
+      
+      // Calculate layout dynamic spacing based on viewport size
+      const spacingX = Math.max(16, canvas.width / 34);
+      const spacingY = 16;
+
+      // Camera Angles & Constants
+      const tiltAngle = 0.62; // Low viewpoint tilt angle
+      const cosT = Math.cos(tiltAngle);
+      const sinT = Math.sin(tiltAngle);
+      const fov = 380;
+      const depthOffset = 360;
+
+      // Audio beat reaction - Double pulse simulated heartbeat (lub-dub)
+      let heartBeat = 0;
+      if (isPlayingRef.current) {
+        const timeSecs = Date.now() / 1000;
+        const beatCycle = (timeSecs * 1.15) % 1.0; // ~70 BPM
+        if (beatCycle < 0.15) {
+          // Lub (first heart pulse)
+          heartBeat = Math.sin((beatCycle / 0.15) * Math.PI) * 0.45;
+        } else if (beatCycle >= 0.22 && beatCycle < 0.37) {
+          // Dub (second heart pulse)
+          heartBeat = Math.sin(((beatCycle - 0.22) / 0.15) * Math.PI) * 0.30;
         }
       }
 
-      // 2. Audio reaction / simulated pulse calculation
-      let beatPulse = 0;
-      if (isPlayingRef.current) {
-        const timeSecs = Date.now() / 1000;
-        // Frequency changes depending on vibe
-        let pulseFreq = 1.6;
-        if (currentVibeName.current === 'intense') pulseFreq = 2.8;
-        else if (currentVibeName.current === 'energy') pulseFreq = 2.2;
-        else if (currentVibeName.current === 'vibrant') pulseFreq = 1.8;
-        else if (currentVibeName.current === 'ethereal') pulseFreq = 0.8;
+      // Modulate topographic heights based on heartbeat pulses
+      const baseHeight = 55;
+      const activeHeightScale = baseHeight * (1 + heartBeat * 0.7);
+      const activeSpeedMultiplier = 1 + heartBeat * 0.45;
+      const activeLineWidth = 0.8 * (1 + heartBeat * 0.5);
 
-        // Peak mathematical expression for a crisp heartbeat pulse: (sin(x) * 0.5 + 0.5) ^ 5
-        beatPulse = Math.pow(Math.sin(timeSecs * pulseFreq * Math.PI) * 0.5 + 0.5, 5);
+      // We pre-calculate all projected points grid to draw line strips correctly
+      const projectedGrid = [];
+
+      for (let r = 0; r < ROWS; r++) {
+        projectedGrid[r] = [];
+        
+        // As rows go deeper, spacing can be compressed
+        const worldY = (r - ROWS / 2) * spacingY;
+
+        for (let c = 0; c < COLS; c++) {
+          const worldX = (c - COLS / 2) * spacingX;
+
+          // Perlin noise calculation for elevation Z
+          // Offset worldY coordinate with time t to flow the terrain waves forward
+          const noiseScale = 0.0035;
+          const zSample = noiseEngine.noise(
+            worldX * noiseScale,
+            (worldY - t * 0.8 * activeSpeedMultiplier) * noiseScale,
+            t * 0.0008
+          );
+
+          // Base Z displacement
+          let worldZ = zSample * activeHeightScale;
+
+          // Add a beautiful valley at the center of the viewport so cards are readable
+          const centerXRatio = Math.abs(c - COLS / 2) / (COLS / 2); // 0 at center, 1 at edges
+          worldZ *= (0.2 + 0.8 * Math.pow(centerXRatio, 1.8));
+
+          // Tilt rotation around X-axis & depth translation
+          const camY = worldY * cosT - worldZ * sinT;
+          const camZ = worldY * sinT + worldZ * cosT + depthOffset;
+
+          // Project to 2D
+          const screenX = centerX + (worldX * fov) / camZ;
+          const screenY = centerY + (camY * fov) / camZ + 120; // vertical offset
+
+          projectedGrid[r][c] = {
+            x: screenX,
+            y: screenY,
+            z: camZ
+          };
+        }
       }
 
-      const activeSpeed = current.speed * (1 + beatPulse * 0.45);
-      const activeWidth = 1.0 + beatPulse * 0.6;
+      // Draw Topographic Contour Lines (Row by Row)
+      for (let r = 0; r < ROWS; r++) {
+        ctx.beginPath();
+        let drawing = false;
 
-      // 3. Clear trail overlay
-      // By drawing a semi-transparent dark rectangle, we create the wave tail
-      ctx.globalAlpha = 1 - current.trail;
-      ctx.fillStyle = '#060907'; // Match CSS --bg-color
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.globalAlpha = 1.0;
+        for (let c = 0; c < COLS; c++) {
+          const pt = projectedGrid[r][c];
+          if (!pt) continue;
 
-      // 4. Update and Draw Flow Particles
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        p.update(activeSpeed, current.scale);
-        p.draw(current.colors, activeWidth);
+          // Fog-like Horizon Fade out: lines disappear in the far distance
+          const depthFade = Math.max(0, Math.min(1, (1 - (pt.z - 180) / 480)));
+          if (depthFade <= 0.01) {
+            if (drawing) {
+              ctx.stroke();
+              ctx.beginPath();
+              drawing = false;
+            }
+            continue;
+          }
+
+          // Apply dynamic strokes based on beat pulse and depth
+          ctx.lineWidth = activeLineWidth * (0.3 + 0.7 * depthFade);
+          ctx.strokeStyle = `rgba(255, 42, 59, ${depthFade * 0.42})`; // Theme color red
+
+          if (!drawing) {
+            ctx.moveTo(pt.x, pt.y);
+            drawing = true;
+          } else {
+            ctx.lineTo(pt.x, pt.y);
+          }
+        }
+        if (drawing) {
+          ctx.stroke();
+        }
       }
 
-      t += 1.5; // Increment timeline
+      // Draw Glowing Grid Intersections (Dots)
+      // We draw dots every 3 columns and 2 rows to match a constellation-topography hybrid mesh
+      for (let r = 0; r < ROWS; r += 2) {
+        for (let c = 1; c < COLS; c += 3) {
+          const pt = projectedGrid[r][c];
+          if (!pt) continue;
+
+          const depthFade = Math.max(0, Math.min(1, (1 - (pt.z - 180) / 480)));
+          if (depthFade <= 0.05) continue;
+
+          // Glowing vertex points
+          const pulseSize = (1.2 + Math.sin(t * 0.05 + r * c) * 0.4) * (1 + heartBeat * 0.5);
+          const dotSize = pulseSize * depthFade;
+
+          ctx.fillStyle = `rgba(255, 60, 80, ${depthFade * 0.65})`;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, dotSize, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Add a tiny surrounding glow aura to vertices
+          if (depthFade > 0.4 && isPlayingRef.current) {
+            ctx.fillStyle = `rgba(255, 42, 59, ${depthFade * 0.15 * heartBeat})`;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, dotSize * 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      t += 1.4; // Timeline update
     };
 
-    // Kick off animation loop
     render();
 
     return () => {
@@ -352,7 +287,7 @@ export default function Background({ vibe = 'chill', isPlaying = false }) {
         zIndex: -1,
         pointerEvents: 'none',
         display: 'block',
-        backgroundColor: '#060907'
+        backgroundColor: '#050202'
       }}
       id="flowFieldCanvas"
     />
