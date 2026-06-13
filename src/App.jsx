@@ -3,10 +3,10 @@ import { dbService } from './db';
 import SongInput from './components/SongInput';
 import SongList from './components/SongList';
 import AdminLogin from './components/AdminLogin';
+import Background from './components/Background';
 import { 
   Music, 
   Lock, 
-  Unlock, 
   LogOut, 
   Play, 
   Pause, 
@@ -24,7 +24,7 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
-  // Initialize Audio
+  // Initialize Audio & Subscriptions
   useEffect(() => {
     audioRef.current = new Audio();
     
@@ -50,7 +50,7 @@ export default function App() {
       setIsAdmin(true);
     }
 
-    // Subscribe to database songs (LocalStorage real-time sync)
+    // Subscribe to database songs (Firebase Realtime Database sync)
     const unsubscribe = dbService.subscribeSongs((updatedSongs) => {
       setSongs(updatedSongs);
     });
@@ -90,8 +90,7 @@ export default function App() {
   };
 
   const handleDeleteSong = async (id) => {
-    // SECURITY CHECK: Enforce admin access. Even if UI is bypassed or manipulated, 
-    // the delete operation will fail if the state doesn't verify admin access.
+    // SECURITY CHECK: Enforce admin access.
     if (!isAdmin) {
       alert('Acceso Denegado: Debes iniciar sesión como administrador para eliminar canciones.');
       return;
@@ -114,7 +113,6 @@ export default function App() {
     handleStopAudio();
     await dbService.clearAllSongs();
   };
-
 
   // Audio Playback Controls
   const handleTogglePlay = (song) => {
@@ -145,8 +143,19 @@ export default function App() {
     setIsPlaying(false);
   };
 
+  // Calculate active background vibe:
+  // If the admin is playing a preview -> use that song's vibe.
+  // If no preview is playing -> use the vibe of the most recently added song in the queue (songs[0]).
+  // Default to 'chill'.
+  const activeVibe = (currentPlayingSong && isPlaying)
+    ? (currentPlayingSong.vibe || 'chill')
+    : (songs.length > 0 ? (songs[0].vibe || 'chill') : 'chill');
+
   return (
     <div className="app-container">
+      {/* Responsive Animated Canvas Background */}
+      <Background vibe={activeVibe} isPlaying={isPlaying} />
+
       {/* Navigation / Header */}
       <nav className="navbar" id="mainNavbar">
         <div className="logo" id="appLogo">
@@ -156,17 +165,15 @@ export default function App() {
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {isAdmin ? (
-            <>
-              <button 
-                onClick={handleLogout} 
-                className="btn-secondary"
-                id="logoutBtn"
-                title="Cerrar sesión de admin"
-              >
-                <LogOut size={14} />
-                Salir
-              </button>
-            </>
+            <button 
+              onClick={handleLogout} 
+              className="btn-secondary"
+              id="logoutBtn"
+              title="Cerrar sesión de admin"
+            >
+              <LogOut size={14} />
+              Salir
+            </button>
           ) : (
             <button 
               onClick={() => setIsLoginOpen(true)} 
@@ -181,23 +188,25 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Main Content Layout */}
-      <main className="layout-grid">
-        <section>
+      {/* Main Content Layout - Role-based View */}
+      <main className={isAdmin ? "layout-grid" : "layout-single-centered"}>
+        <section className="form-column">
           <SongInput onAddSong={handleAddSong} />
         </section>
 
-        <section>
-          <SongList 
-            songs={songs} 
-            isAdmin={isAdmin}
-            onDeleteSong={handleDeleteSong}
-            onClearSongs={handleClearSongs}
-            currentPlayingSong={currentPlayingSong}
-            isPlaying={isPlaying}
-            onTogglePlay={handleTogglePlay}
-          />
-        </section>
+        {isAdmin && (
+          <section className="list-column">
+            <SongList 
+              songs={songs} 
+              isAdmin={isAdmin}
+              onDeleteSong={handleDeleteSong}
+              onClearSongs={handleClearSongs}
+              currentPlayingSong={currentPlayingSong}
+              isPlaying={isPlaying}
+              onTogglePlay={handleTogglePlay}
+            />
+          </section>
+        )}
       </main>
 
       {/* Admin Login Modal */}
@@ -207,8 +216,8 @@ export default function App() {
         onLogin={handleLogin}
       />
 
-      {/* Floating Now Playing Mini Player */}
-      {currentPlayingSong && (
+      {/* Floating Now Playing Mini Player (Admin Only) */}
+      {isAdmin && currentPlayingSong && (
         <div className="glass-card now-playing-bar" id="nowPlayingBar">
           {currentPlayingSong.artwork ? (
             <img 
@@ -233,7 +242,6 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* Tiny Equalizer Visualizer */}
             <div className={`audio-visualizer-mini ${isPlaying ? 'playing' : ''}`}>
               <span className="bar bar-1"></span>
               <span className="bar bar-2"></span>

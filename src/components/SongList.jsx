@@ -121,8 +121,18 @@ export default function SongList({
 
               {/* Title & Artist */}
               <div className="song-info">
-                <div className="song-title" title={song.title}>
-                  {song.title}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                  <span className="song-title" title={song.title} style={{ marginBottom: 0, display: 'inline-block' }}>
+                    {song.title}
+                  </span>
+                  {song.vibe && (
+                    <span className={`badge-vibe vibe-${song.vibe}`}>
+                      {song.vibe === 'chill' ? '❄️ chill' :
+                       song.vibe === 'energy' ? '⚡ energy' :
+                       song.vibe === 'vibrant' ? '🔥 vibrant' :
+                       song.vibe === 'intense' ? '🎸 intense' : '✨ ethereal'}
+                    </span>
+                  )}
                 </div>
                 <div className="song-artist" title={song.artist}>
                   {song.artist}

@@ -492,3 +492,210 @@ h1, h2, h3 {
   font-size: 14px;
   margin-bottom: 16px;
 }
+
+/* Layout single column centered (Public view) */
+.layout-single-centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(75vh - 100px);
+  width: 100%;
+}
+
+/* Success Card & Animation */
+.success-card-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 24px;
+  animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-align: center;
+}
+
+@keyframes scaleIn {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.success-checkmark-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(42, 255, 187, 0.1);
+  border: 2px solid var(--neon-mint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neon-mint);
+  box-shadow: 0 0 16px var(--neon-mint-glow);
+  animation: pulseSuccess 2s infinite alternate;
+}
+
+@keyframes pulseSuccess {
+  0% { box-shadow: 0 0 8px rgba(42, 255, 187, 0.2); }
+  100% { box-shadow: 0 0 20px rgba(42, 255, 187, 0.6); }
+}
+
+.success-song-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 12px;
+  width: 100%;
+  text-align: left;
+  margin-top: 10px;
+}
+
+.success-badge-artwork {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.success-badge-artwork.fallback {
+  background: var(--primary-emerald);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.success-badge-info {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.success-badge-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.success-badge-artist {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.success-badge-vibe {
+  font-family: var(--font-technical);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--neon-mint);
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* Vibe Selector Styles */
+.vibe-selector-container {
+  margin-top: 24px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
+}
+
+.vibe-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 480px) {
+  .vibe-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.vibe-btn {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 10px 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-muted);
+  font-family: var(--font-technical);
+}
+
+.vibe-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  color: var(--text-main);
+}
+
+.vibe-btn.active {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--vibe-accent);
+  color: var(--text-main);
+  box-shadow: 0 0 10px var(--vibe-accent);
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
+}
+
+.vibe-desc {
+  font-size: 9px;
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+/* Vibe Badges inside SongList */
+.badge-vibe {
+  font-family: var(--font-technical);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+}
+
+.badge-vibe.vibe-chill {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: rgba(0, 240, 255, 0.3);
+  color: #00f0ff;
+}
+
+.badge-vibe.vibe-energy {
+  background: rgba(255, 80, 180, 0.1);
+  border-color: rgba(255, 80, 180, 0.3);
+  color: #ff50b4;
+}
+
+.badge-vibe.vibe-vibrant {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: rgba(255, 215, 0, 0.3);
+  color: #ffd700;
+}
+
+.badge-vibe.vibe-intense {
+  background: rgba(230, 15, 40, 0.1);
+  border-color: rgba(230, 15, 40, 0.3);
+  color: #e60f28;
+}
+
+.badge-vibe.vibe-ethereal {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}

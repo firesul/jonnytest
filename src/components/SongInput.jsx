@@ -1,5 +1,86 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Link as LinkIcon, Music } from 'lucide-react';
+import { Plus, Search, Link as LinkIcon, Music, Check, Zap, Flame, Sparkles, Disc } from 'lucide-react';
+
+// Map iTunes primaryGenreName to our 5 visual Vibes
+const mapGenreToVibe = (genreName) => {
+  if (!genreName) return 'chill';
+  const g = genreName.toLowerCase();
+  
+  if (
+    g.includes('chill') || 
+    g.includes('ambient') || 
+    g.includes('lounge') || 
+    g.includes('r&b') || 
+    g.includes('soul') || 
+    g.includes('blues') || 
+    g.includes('jazz') || 
+    g.includes('lofi') || 
+    g.includes('lo-fi') ||
+    g.includes('downtempo') ||
+    g.includes('trip-hop')
+  ) {
+    return 'chill';
+  }
+  
+  if (
+    g.includes('pop') || 
+    g.includes('dance') || 
+    g.includes('electro') || 
+    g.includes('house') || 
+    g.includes('techno') || 
+    g.includes('trance') || 
+    g.includes('disco') || 
+    g.includes('club') || 
+    g.includes('edm') ||
+    g.includes('synth') ||
+    g.includes('funk')
+  ) {
+    return 'energy';
+  }
+  
+  if (
+    g.includes('rock') || 
+    g.includes('metal') || 
+    g.includes('punk') || 
+    g.includes('alternative') || 
+    g.includes('grunge') || 
+    g.includes('indie') ||
+    g.includes('emo') ||
+    g.includes('hardcore')
+  ) {
+    return 'intense';
+  }
+  
+  if (
+    g.includes('latin') || 
+    g.includes('reggaeton') || 
+    g.includes('salsa') || 
+    g.includes('bachata') || 
+    g.includes('urbano') || 
+    g.includes('merengue') || 
+    g.includes('tropical') ||
+    g.includes('cumbia') ||
+    g.includes('pop latino')
+  ) {
+    return 'vibrant';
+  }
+  
+  if (
+    g.includes('classic') || 
+    g.includes('soundtrack') || 
+    g.includes('instrumental') || 
+    g.includes('new age') || 
+    g.includes('acoustic') || 
+    g.includes('singer') || 
+    g.includes('folk') ||
+    g.includes('orchestral') ||
+    g.includes('piano')
+  ) {
+    return 'ethereal';
+  }
+  
+  return 'chill'; // default fallback
+};
 
 export default function SongInput({ onAddSong }) {
   const [inputValue, setInputValue] = useState('');
@@ -7,6 +88,11 @@ export default function SongInput({ onAddSong }) {
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [error, setError] = useState('');
+  const [selectedVibe, setSelectedVibe] = useState('chill');
+  
+  // Success state feedback
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successDetails, setSuccessDetails] = useState(null);
   
   const dropdownRef = useRef(null);
 
@@ -20,6 +106,16 @@ export default function SongInput({ onAddSong }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Automatic success card timeout
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
 
   const cleanUrlToSearchQuery = (urlStr) => {
     try {
@@ -43,7 +139,7 @@ export default function SongInput({ onAddSong }) {
     }
   };
 
-  // Advanced metadata fetcher using local parsing and API backups to avoid CORS/redirects
+  // Fetch metadata from URL with fallbacks
   const fetchMetadataFromUrl = async (urlStr) => {
     try {
       const url = new URL(urlStr);
@@ -60,9 +156,8 @@ export default function SongInput({ onAddSong }) {
       const isYoutube = host.includes('youtube.com') || host.includes('youtu.be');
       const isAppleMusic = host.includes('music.apple.com');
 
-      // YouTube casing correction helper
+      // YouTube ID case correction helper
       let targetUrl = urlStr;
-      let youtubeId = '';
       if (isYoutube) {
         let ytId = url.searchParams.get('v');
         if (!ytId && host.includes('youtu.be')) {
@@ -75,19 +170,17 @@ export default function SongInput({ onAddSong }) {
           if (idx !== -1) {
             const correctedId = listId.substring(idx, idx + ytId.length);
             if (correctedId !== ytId) {
-              console.log(`Auto-correcting YouTube video ID case: ${ytId} -> ${correctedId}`);
               ytId = correctedId;
             }
           }
         }
         
         if (ytId) {
-          youtubeId = ytId;
           targetUrl = `https://www.youtube.com/watch?v=${ytId}`;
         }
       }
 
-      // 1. APPLE MUSIC (Local path parsing - 100% reliable)
+      // 1. APPLE MUSIC
       if (isAppleMusic) {
         const pathSegments = url.pathname.split('/').filter(Boolean);
         let country = 'us';
@@ -106,8 +199,6 @@ export default function SongInput({ onAddSong }) {
               `https://itunes.apple.com/lookup?id=${trackId}&country=${country}`
             );
             const itunesData = await itunesRes.json();
-            
-            // Sometimes it returns the album first if it's an album ID, we want the track
             const trackItem = itunesData.results.find(item => item.wrapperType === 'track');
             
             if (trackItem) {
@@ -117,7 +208,8 @@ export default function SongInput({ onAddSong }) {
                 artwork: trackItem.artworkUrl100 ? trackItem.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : '',
                 duration: Math.round(trackItem.trackTimeMillis / 1000),
                 previewUrl: trackItem.previewUrl || '',
-                url: urlStr
+                url: urlStr,
+                primaryGenreName: trackItem.primaryGenreName
               };
             }
           } catch (e) {
@@ -126,13 +218,12 @@ export default function SongInput({ onAddSong }) {
         }
       }
 
-      // 2. SPOTIFY (Try native oEmbed, fall back to Microlink proxy)
+      // 2. SPOTIFY
       if (isSpotify) {
         let title = '';
         let artist = '';
         let artwork = '';
 
-        // Try Microlink first because oEmbed dropped artist names
         try {
           const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(urlStr)}`;
           const response = await fetch(microlinkUrl);
@@ -141,15 +232,12 @@ export default function SongInput({ onAddSong }) {
             title = result.data.title || '';
             artist = result.data.author || 'Spotify';
             artwork = result.data.image?.url || result.data.logo?.url || '';
-            
-            // Clean title if it contains " | Spotify"
             title = title.replace(/\s*\|\s*Spotify/gi, '').trim();
           }
         } catch (err) {
           console.warn('Spotify Microlink failed:', err);
         }
 
-        // Fallback to oEmbed if Microlink failed to get a title
         if (!title) {
           try {
             const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(urlStr)}`);
@@ -172,7 +260,6 @@ export default function SongInput({ onAddSong }) {
         }
 
         if (title) {
-          // Search iTunes to get duration and preview audio
           try {
             const searchQuery = title + ' ' + (artist !== 'Spotify' ? artist : '');
             const itunesRes = await fetch(
@@ -187,26 +274,27 @@ export default function SongInput({ onAddSong }) {
                 artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : artwork,
                 duration: Math.round(item.trackTimeMillis / 1000),
                 previewUrl: item.previewUrl || '',
-                url: urlStr
+                url: urlStr,
+                primaryGenreName: item.primaryGenreName
               };
             }
           } catch (e) {
             console.error('iTunes search from Spotify info failed:', e);
           }
 
-          // If iTunes fails, return what we have
           return {
             title: title,
             artist: artist,
             artwork: artwork,
             duration: 0,
             previewUrl: '',
-            url: urlStr
+            url: urlStr,
+            primaryGenreName: ''
           };
         }
       }
 
-      // 3. YOUTUBE (CORS-friendly noembed API)
+      // 3. YOUTUBE
       if (isYoutube) {
         const noembedUrl = `https://noembed.com/embed?url=${encodeURIComponent(targetUrl)}`;
         const response = await fetch(noembedUrl);
@@ -214,7 +302,7 @@ export default function SongInput({ onAddSong }) {
         
         if (data && data.title) {
           let title = data.title;
-          let cleanTitle = title.replace(/\s*[\(\[][^)]*[\)\]]/gi, '').trim(); // clean brackets
+          let cleanTitle = title.replace(/\s*[\(\[][^)]*[\)\]]/gi, '').trim();
           let artist = 'YouTube';
           const dashIndex = cleanTitle.indexOf('-');
           if (dashIndex > 0) {
@@ -235,7 +323,8 @@ export default function SongInput({ onAddSong }) {
                 artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : (data.thumbnail_url || ''),
                 duration: Math.round(item.trackTimeMillis / 1000),
                 previewUrl: item.previewUrl || '',
-                url: targetUrl
+                url: targetUrl,
+                primaryGenreName: item.primaryGenreName
               };
             }
           } catch (e) {
@@ -248,12 +337,13 @@ export default function SongInput({ onAddSong }) {
             artwork: data.thumbnail_url || '',
             duration: 0,
             previewUrl: '',
-            url: targetUrl
+            url: targetUrl,
+            primaryGenreName: ''
           };
         }
       }
 
-      // 4. OTHER WEBSITES (Generic Fallback)
+      // 4. OTHER WEBSITES
       try {
         const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(urlStr)}`;
         const response = await fetch(microlinkUrl);
@@ -266,7 +356,8 @@ export default function SongInput({ onAddSong }) {
             artwork: meta.logo?.url || meta.image?.url || '',
             duration: 0,
             previewUrl: '',
-            url: urlStr
+            url: urlStr,
+            primaryGenreName: ''
           };
         }
       } catch (e) {}
@@ -277,7 +368,8 @@ export default function SongInput({ onAddSong }) {
         artwork: '',
         duration: 0,
         previewUrl: '',
-        url: urlStr
+        url: urlStr,
+        primaryGenreName: ''
       };
     } catch (e) {
       console.error('Error fetching URL metadata:', e);
@@ -324,7 +416,8 @@ export default function SongInput({ onAddSong }) {
           artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : '',
           duration: Math.round(item.trackTimeMillis / 1000),
           previewUrl: item.previewUrl || '',
-          url: isUrl ? value : item.trackViewUrl || ''
+          url: isUrl ? value : item.trackViewUrl || '',
+          primaryGenreName: item.primaryGenreName
         }));
         setSuggestions(formatted);
         setShowDropdown(true);
@@ -340,14 +433,28 @@ export default function SongInput({ onAddSong }) {
   };
 
   const handleSelectSuggestion = (song) => {
+    const detectedVibe = mapGenreToVibe(song.primaryGenreName);
+    
     onAddSong({
       title: song.title,
       artist: song.artist,
       artwork: song.artwork,
       duration: song.duration,
       previewUrl: song.previewUrl,
-      url: song.url
+      url: song.url,
+      vibe: detectedVibe
     });
+
+    setSuccessDetails({
+      title: song.title,
+      artist: song.artist,
+      artwork: song.artwork,
+      vibe: detectedVibe
+    });
+    
+    // Automatically visual-sync the vibe selector for aesthetic consistency
+    setSelectedVibe(detectedVibe);
+    setShowSuccess(true);
     setInputValue('');
     setSuggestions([]);
     setShowDropdown(false);
@@ -358,24 +465,29 @@ export default function SongInput({ onAddSong }) {
     if (!inputValue.trim()) return;
 
     const isUrl = inputValue.startsWith('http://') || inputValue.startsWith('https://');
-
     setLoading(true);
+    
     try {
+      let songData = null;
       if (isUrl) {
         const metadata = await fetchMetadataFromUrl(inputValue);
         if (metadata) {
-          onAddSong(metadata);
-          setInputValue('');
+          const finalVibe = mapGenreToVibe(metadata.primaryGenreName) || selectedVibe;
+          songData = {
+            ...metadata,
+            vibe: finalVibe
+          };
+          setSelectedVibe(finalVibe);
         } else {
-          onAddSong({
+          songData = {
             title: 'Enlace Web',
             artist: 'Enlace externo',
             artwork: '',
             duration: 0,
             previewUrl: '',
-            url: inputValue
-          });
-          setInputValue('');
+            url: inputValue,
+            vibe: selectedVibe
+          };
         }
       } else {
         const response = await fetch(
@@ -384,26 +496,40 @@ export default function SongInput({ onAddSong }) {
         const data = await response.json();
         if (data.results && data.results.length > 0) {
           const item = data.results[0];
-          onAddSong({
+          const finalVibe = mapGenreToVibe(item.primaryGenreName) || selectedVibe;
+          songData = {
             title: item.trackName,
             artist: item.artistName,
             artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '400x400bb.jpg') : '',
             duration: Math.round(item.trackTimeMillis / 1000),
             previewUrl: item.previewUrl || '',
-            url: item.trackViewUrl || ''
-          });
-          setInputValue('');
+            url: item.trackViewUrl || '',
+            vibe: finalVibe
+          };
+          setSelectedVibe(finalVibe);
         } else {
-          onAddSong({
+          songData = {
             title: inputValue,
             artist: 'Artista Desconocido',
             artwork: '',
             duration: 0,
             previewUrl: '',
-            url: ''
-          });
-          setInputValue('');
+            url: '',
+            vibe: selectedVibe
+          };
         }
+      }
+
+      if (songData) {
+        onAddSong(songData);
+        setSuccessDetails({
+          title: songData.title,
+          artist: songData.artist,
+          artwork: songData.artwork,
+          vibe: songData.vibe
+        });
+        setShowSuccess(true);
+        setInputValue('');
       }
     } catch (err) {
       setError('Error al agregar la canción. Inténtalo de nuevo.');
@@ -413,6 +539,54 @@ export default function SongInput({ onAddSong }) {
       setShowDropdown(false);
     }
   };
+
+  // Render success feedback view
+  if (showSuccess) {
+    const vibeLabel = 
+      successDetails?.vibe === 'chill' ? 'Chill ❄️' :
+      successDetails?.vibe === 'energy' ? 'Energy ⚡' :
+      successDetails?.vibe === 'vibrant' ? 'Vibrant 🔥' :
+      successDetails?.vibe === 'intense' ? 'Intense 🎸' : 'Ethereal ✨';
+
+    return (
+      <div className="glass-card success-card-container" id="successSongCard">
+        <div className="success-checkmark-circle">
+          <Check size={36} className="checkmark-icon" />
+        </div>
+        <h2 style={{ fontSize: '20px', fontWeight: '700', margin: '12px 0 6px 0', textAlign: 'center' }}>
+          ¡Música Agregada!
+        </h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center', marginBottom: '20px' }}>
+          Tu canción ha sido enviada a la lista de reproducción.
+        </p>
+        
+        {successDetails && (
+          <div className="success-song-badge">
+            {successDetails.artwork ? (
+              <img src={successDetails.artwork} alt={successDetails.title} className="success-badge-artwork" />
+            ) : (
+              <div className="success-badge-artwork fallback">
+                <Music size={18} />
+              </div>
+            )}
+            <div className="success-badge-info">
+              <div className="success-badge-title">{successDetails.title}</div>
+              <div className="success-badge-artist">{successDetails.artist}</div>
+              <div className="success-badge-vibe">Vibra: {vibeLabel}</div>
+            </div>
+          </div>
+        )}
+        
+        <button 
+          onClick={() => setShowSuccess(false)}
+          className="btn-primary"
+          style={{ width: '100%', marginTop: '16px' }}
+        >
+          Agregar otra canción
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="glass-card" style={{ position: 'relative' }} id="addSongCard">
@@ -428,7 +602,7 @@ export default function SongInput({ onAddSong }) {
           <label className="form-label" htmlFor="songSearchInput">
             Escribe el nombre o pega la URL
           </label>
-          <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+          <div style={{ display: 'flex', gap: '8px', position: 'relative', marginBottom: '20px' }}>
             <div style={{ position: 'relative', flexGrow: 1 }}>
               <input
                 type="text"
@@ -479,6 +653,38 @@ export default function SongInput({ onAddSong }) {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Dynamic Vibe Selector */}
+        <div className="vibe-selector-container">
+          <span className="form-label" style={{ marginBottom: '10px', display: 'block' }}>
+            Personalizar Vibra (Atmósfera del Fondo)
+          </span>
+          <div className="vibe-grid">
+            {[
+              { id: 'chill', icon: <Disc size={14} />, label: 'Chill ❄️', desc: 'Lofi / Jazz / R&B', color: '#00f0ff' },
+              { id: 'energy', icon: <Zap size={14} />, label: 'Energy ⚡', desc: 'Pop / Electro / Dance', color: '#ff50b4' },
+              { id: 'vibrant', icon: <Sparkles size={14} />, label: 'Vibrant 🔥', desc: 'Reggaeton / Latino', color: '#ffd700' },
+              { id: 'intense', icon: <Flame size={14} />, label: 'Intense 🎸', desc: 'Rock / Metal / Indie', color: '#e60f28' },
+              { id: 'ethereal', icon: <Music size={14} />, label: 'Ethereal ✨', desc: 'Ambient / Clásica', color: '#ffffff' }
+            ].map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                className={`vibe-btn ${selectedVibe === v.id ? 'active' : ''}`}
+                style={{
+                  '--vibe-accent': v.color
+                }}
+                onClick={() => setSelectedVibe(v.id)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700' }}>
+                  {v.icon}
+                  <span>{v.label}</span>
+                </div>
+                <span className="vibe-desc">{v.desc}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </form>
     </div>
