@@ -670,10 +670,12 @@ export default function SongInput({ onAddSong }) {
               {showDropdown && suggestions.length > 0 && (
                 <div className="suggestions-list" id="searchDropdown">
                   {suggestions.map((song) => (
-                    <div
+                    <button
+                      type="button"
                       key={song.trackId || Math.random()}
                       className="suggestion-item"
-                      onMouseDown={(e) => {
+                      onClick={() => handleSelectSuggestion(song)}
+                      onTouchStart={(e) => {
                         e.preventDefault();
                         handleSelectSuggestion(song);
                       }}
@@ -689,7 +691,7 @@ export default function SongInput({ onAddSong }) {
                         <div className="suggestion-title">{song.title}</div>
                         <div className="suggestion-artist">{song.artist}</div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}

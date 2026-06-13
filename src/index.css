@@ -346,6 +346,12 @@ h1, h2, h3 {
   padding: 10px 12px;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
 }
 
 .suggestion-item:hover {
