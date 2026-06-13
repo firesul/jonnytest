@@ -765,4 +765,47 @@ h1, h2, h3 {
     padding: 10px 14px;
     width: calc(100% - 24px);
   }
+
+  /* Compact Song Card styling for mobile */
+  .song-card {
+    padding: 10px;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  
+  .song-artwork {
+    width: 44px;
+    height: 44px;
+  }
+
+  .song-title {
+    font-size: 14px;
+  }
+
+  .song-artist {
+    font-size: 12px;
+  }
+
+  .song-meta {
+    gap: 6px;
+  }
+
+  .btn-play-pause, .btn-delete {
+    width: 28px;
+    height: 28px;
+  }
+
+  .btn-play-pause svg, .btn-delete svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .song-duration {
+    font-size: 12px;
+  }
+
+  .badge-vibe {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
 }
