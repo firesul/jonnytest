@@ -148,7 +148,11 @@ export default function App() {
       {/* Navigation / Header */}
       <nav className="navbar" id="mainNavbar">
         <div className="logo" id="appLogo">
-          <Heart size={24} style={{ color: '#ff2a3b', fill: '#ff2a3b' }} />
+          <img 
+            src="/heart_logo.png" 
+            alt="Heart Logo" 
+            style={{ width: '28px', height: '28px', objectFit: 'contain' }} 
+          />
           <span>Heart</span>
         </div>
         

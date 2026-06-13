@@ -101,9 +101,9 @@ export default function Background({ isPlaying = false }) {
 
     const noiseEngine = new PerlinNoise();
 
-    // 3D Grid Parameters
-    const COLS = 42;
-    const ROWS = 32;
+    // 3D Grid Parameters (Increased density for high-fidelity terrain)
+    const COLS = 85;
+    const ROWS = 60;
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
@@ -112,6 +112,9 @@ export default function Background({ isPlaying = false }) {
 
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
+
+    // Pre-allocate projected grid points to avoid garbage collection overhead
+    const projectedGrid = Array.from({ length: ROWS }, () => new Array(COLS));
 
     // Smooth 3D projection frame loop
     const render = () => {
@@ -122,18 +125,18 @@ export default function Background({ isPlaying = false }) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const centerX = canvas.width / 2;
-      const centerY = canvas.height * 0.4; // Slightly elevated center horizon
+      const centerY = canvas.height * 0.45; // Horizon around upper-middle
       
-      // Calculate layout dynamic spacing based on viewport size
-      const spacingX = Math.max(16, canvas.width / 34);
-      const spacingY = 16;
+      // Calculate layout dynamic spacing based on viewport size and grid density
+      const spacingX = Math.max(8, canvas.width / 80);
+      const spacingY = 12;
 
       // Camera Angles & Constants
-      const tiltAngle = 0.62; // Low viewpoint tilt angle
+      const tiltAngle = 0.64; // Low viewpoint tilt angle
       const cosT = Math.cos(tiltAngle);
       const sinT = Math.sin(tiltAngle);
-      const fov = 380;
-      const depthOffset = 360;
+      const fov = 400;
+      const depthOffset = 450;
 
       // Audio beat reaction - Double pulse simulated heartbeat (lub-dub)
       let heartBeat = 0;
@@ -150,56 +153,61 @@ export default function Background({ isPlaying = false }) {
       }
 
       // Modulate topographic heights based on heartbeat pulses
-      const baseHeight = 55;
-      const activeHeightScale = baseHeight * (1 + heartBeat * 0.7);
+      const baseHeight = 150;
+      const activeHeightScale = baseHeight * (1 + heartBeat * 0.6);
       const activeSpeedMultiplier = 1 + heartBeat * 0.45;
-      const activeLineWidth = 0.8 * (1 + heartBeat * 0.5);
+      const activeLineWidth = 0.9 * (1 + heartBeat * 0.4);
 
-      // We pre-calculate all projected points grid to draw line strips correctly
-      const projectedGrid = [];
-
+      // 1. Calculate and Project All Grid Vertices
       for (let r = 0; r < ROWS; r++) {
-        projectedGrid[r] = [];
-        
-        // As rows go deeper, spacing can be compressed
+        // worldY goes from negative (horizon) to positive (foreground/close)
         const worldY = (r - ROWS / 2) * spacingY;
+        const rowRatio = r / ROWS; // 0 at back, 1 at front
 
         for (let c = 0; c < COLS; c++) {
           const worldX = (c - COLS / 2) * spacingX;
 
           // Perlin noise calculation for elevation Z
-          // Offset worldY coordinate with time t to flow the terrain waves forward
-          const noiseScale = 0.0035;
+          // Stretch noise along X (lower scale) to create long horizontal waves
+          const noiseScaleX = 0.0025;
+          const noiseScaleY = 0.006;
           const zSample = noiseEngine.noise(
-            worldX * noiseScale,
-            (worldY - t * 0.8 * activeSpeedMultiplier) * noiseScale,
-            t * 0.0008
+            worldX * noiseScaleX,
+            (worldY - t * 1.6 * activeSpeedMultiplier) * noiseScaleY,
+            t * 0.0015
           );
 
           // Base Z displacement
           let worldZ = zSample * activeHeightScale;
 
-          // Add a beautiful valley at the center of the viewport so cards are readable
+          // Valley filter to keep cards readable:
+          // Deep valley at the horizon (under cards), shallower/more open at foreground
           const centerXRatio = Math.abs(c - COLS / 2) / (COLS / 2); // 0 at center, 1 at edges
-          worldZ *= (0.2 + 0.8 * Math.pow(centerXRatio, 1.8));
+          const valleyDepth = 0.12 + 0.88 * Math.pow(centerXRatio, 2.0);
+          const frontValleyDepth = 0.45 + 0.55 * Math.pow(centerXRatio, 1.2);
+          const finalValley = (1 - rowRatio) * valleyDepth + rowRatio * frontValleyDepth;
+          
+          worldZ *= finalValley;
 
-          // Tilt rotation around X-axis & depth translation
+          // Correct 3D Perspective Tilt Rotation & Translation
+          // Front of grid (worldY > 0) projects closer to camera (lower camZ)
           const camY = worldY * cosT - worldZ * sinT;
-          const camZ = worldY * sinT + worldZ * cosT + depthOffset;
+          const camZ = -worldY * sinT - worldZ * cosT + depthOffset;
 
-          // Project to 2D
+          // Project to 2D screen coordinates
           const screenX = centerX + (worldX * fov) / camZ;
           const screenY = centerY + (camY * fov) / camZ + 120; // vertical offset
 
           projectedGrid[r][c] = {
             x: screenX,
             y: screenY,
-            z: camZ
+            z: camZ,
+            worldZ: worldZ
           };
         }
       }
 
-      // Draw Topographic Contour Lines (Row by Row)
+      // 2. Draw Topographic Contour Lines (Row by Row)
       for (let r = 0; r < ROWS; r++) {
         ctx.beginPath();
         let drawing = false;
@@ -208,8 +216,8 @@ export default function Background({ isPlaying = false }) {
           const pt = projectedGrid[r][c];
           if (!pt) continue;
 
-          // Fog-like Horizon Fade out: lines disappear in the far distance
-          const depthFade = Math.max(0, Math.min(1, (1 - (pt.z - 180) / 480)));
+          // Fog-like Horizon Fade: fade out in distance (camZ close to 660)
+          const depthFade = Math.max(0, Math.min(1, 1 - (pt.z - 240) / 420));
           if (depthFade <= 0.01) {
             if (drawing) {
               ctx.stroke();
@@ -219,7 +227,7 @@ export default function Background({ isPlaying = false }) {
             continue;
           }
 
-          // Apply dynamic strokes based on beat pulse and depth
+          // Apply dynamic strokes based on depth
           ctx.lineWidth = activeLineWidth * (0.3 + 0.7 * depthFade);
           ctx.strokeStyle = `rgba(255, 42, 59, ${depthFade * 0.42})`; // Theme color red
 
@@ -235,36 +243,38 @@ export default function Background({ isPlaying = false }) {
         }
       }
 
-      // Draw Glowing Grid Intersections (Dots)
-      // We draw dots every 3 columns and 2 rows to match a constellation-topography hybrid mesh
+      // 3. Draw Glowing Grid Intersections (Dots)
+      // Every 3 columns and 2 rows to match a constellation-topography hybrid mesh
       for (let r = 0; r < ROWS; r += 2) {
         for (let c = 1; c < COLS; c += 3) {
           const pt = projectedGrid[r][c];
           if (!pt) continue;
 
-          const depthFade = Math.max(0, Math.min(1, (1 - (pt.z - 180) / 480)));
+          const depthFade = Math.max(0, Math.min(1, 1 - (pt.z - 240) / 420));
           if (depthFade <= 0.05) continue;
 
-          // Glowing vertex points
-          const pulseSize = (1.2 + Math.sin(t * 0.05 + r * c) * 0.4) * (1 + heartBeat * 0.5);
-          const dotSize = pulseSize * depthFade;
+          // Height-based glowing factors (peaks are brighter and larger)
+          const heightFactor = Math.max(0, Math.min(1, (pt.worldZ + 75) / 150));
+          const pulseSize = (1.5 + Math.sin(t * 0.05 + r * c) * 0.5) * (1 + heartBeat * 0.5);
+          const dotSize = pulseSize * depthFade * (0.8 + heightFactor * 1.2);
 
-          ctx.fillStyle = `rgba(255, 60, 80, ${depthFade * 0.65})`;
+          // Render glowing dot core (shifts from red to brighter orange/white core for peaks)
+          ctx.fillStyle = `rgba(255, ${42 + heightFactor * 100}, ${59 + heightFactor * 100}, ${depthFade * (0.4 + heightFactor * 0.5)})`;
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, dotSize, 0, Math.PI * 2);
           ctx.fill();
 
-          // Add a tiny surrounding glow aura to vertices
-          if (depthFade > 0.4 && isPlayingRef.current) {
-            ctx.fillStyle = `rgba(255, 42, 59, ${depthFade * 0.15 * heartBeat})`;
+          // Add surrounding glow aura to vertices
+          if (depthFade > 0.3 && (heightFactor > 0.6 || isPlayingRef.current)) {
+            ctx.fillStyle = `rgba(255, 42, 59, ${depthFade * 0.12 * (heightFactor * 0.5 + heartBeat * 0.5)})`;
             ctx.beginPath();
-            ctx.arc(pt.x, pt.y, dotSize * 3, 0, Math.PI * 2);
+            ctx.arc(pt.x, pt.y, dotSize * 3.5, 0, Math.PI * 2);
             ctx.fill();
           }
         }
       }
 
-      t += 1.4; // Timeline update
+      t += 1.8; // Faster animation speed for more motion
     };
 
     render();
