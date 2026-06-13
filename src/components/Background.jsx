@@ -106,9 +106,10 @@ export default function Background({ isPlaying = false, analyser = null }) {
 
     const noiseEngine = new PerlinNoise();
 
-    // 3D Grid Parameters (Increased density for high-fidelity terrain)
-    const COLS = 85;
-    const ROWS = 60;
+    // 3D Grid Parameters (Dynamic density based on screen width for mobile performance)
+    const isMobile = window.innerWidth < 768;
+    const COLS = isMobile ? 45 : 85;
+    const ROWS = isMobile ? 35 : 60;
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;

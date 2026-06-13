@@ -16,27 +16,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <!-- DEBUG iOS - QUITAR DESPUÉS -->
-    <div id="ios-debug-log" style="position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;padding:6px;max-height:180px;overflow-y:auto;z-index:99999;font-family:monospace;pointer-events:none;"></div>
-    <script>
-      const _dbg = document.getElementById('ios-debug-log');
-      function dbg(msg, color) {
-        const line = document.createElement('div');
-        line.style.color = color || '#0f0';
-        line.textContent = '[' + new Date().toISOString().substr(11,8) + '] ' + msg;
-        _dbg.prepend(line);
-      }
-      // Captura errores JS
-      window.addEventListener('error', e => dbg('ERROR: ' + e.message + ' (' + e.filename?.split('/').pop() + ':' + e.lineno + ')', '#f55'));
-      // Captura promesas rechazadas
-      window.addEventListener('unhandledrejection', e => dbg('PROMISE REJECT: ' + e.reason, '#fa0'));
-      // Sobreescribe console
-      const _log = console.log.bind(console);
-      const _warn = console.warn.bind(console);
-      const _error = console.error.bind(console);
-      console.log   = (...a) => { _log(...a);   dbg('LOG: '   + a.join(' '), '#0f0'); };
-      console.warn  = (...a) => { _warn(...a);  dbg('WARN: '  + a.join(' '), '#fa0'); };
-      console.error = (...a) => { _error(...a); dbg('ERR: '   + a.join(' '), '#f55'); };
-    </script>
   </body>
 </html>
