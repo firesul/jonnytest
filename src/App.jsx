@@ -29,9 +29,25 @@ export default function App() {
   const analyserRef = useRef(null);
   const [analyser, setAnalyser] = useState(null);
 
+  // Helper to check if the browser is running on iOS or Safari (WebKit CORS muting bug)
+  const isAppleBrowser = () => {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+    return isIOS || isSafari;
+  };
+
   // Initialize AudioContext & AnalyserNode lazily on user gesture
   const initAudioContext = () => {
     if (audioCtxRef.current) return;
+
+    // WebKit has a security policy bug where createMediaElementSource mutes cross-origin audio
+    // even with CORS allowed, so we bypass it on Apple/Safari platforms.
+    if (isAppleBrowser()) {
+      console.warn("Apple device/Safari detected: bypassing Web Audio routing to prevent muting bug.");
+      return;
+    }
 
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -55,7 +71,12 @@ export default function App() {
   // Initialize Audio & Subscriptions
   useEffect(() => {
     const audio = new Audio();
-    audio.crossOrigin = "anonymous"; // Mandatory for CORS to read pixels/frequencies from iTunes CDN
+    
+    // Apple devices block crossOrigin audio caches, so we omit it there
+    if (!isAppleBrowser()) {
+      audio.crossOrigin = "anonymous"; // Mandatory for CORS to read frequencies from iTunes CDN
+    }
+    
     audioRef.current = audio;
     
     const handleEnded = () => {
