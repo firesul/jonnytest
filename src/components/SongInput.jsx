@@ -206,7 +206,7 @@ export default function SongInput({ onAddSong }) {
         if (trackId && /^\d+$/.test(trackId)) {
           try {
             const itunesRes = await fetch(
-              `/api/music/lookup?id=${trackId}&country=${country}`
+              `/api/lookup?id=${trackId}&country=${country}`
             );
             const itunesData = await itunesRes.json();
             const trackItem = itunesData.results.find(item => item.wrapperType === 'track');
@@ -273,7 +273,7 @@ export default function SongInput({ onAddSong }) {
           try {
             const searchQuery = title + ' ' + (artist !== 'Spotify' ? artist : '');
             const itunesRes = await fetch(
-              `/api/music/search?term=${encodeURIComponent(searchQuery)}&media=music&limit=1`
+              `/api/search?term=${encodeURIComponent(searchQuery)}&media=music&limit=1`
             );
             const itunesData = await itunesRes.json();
             if (itunesData.results && itunesData.results.length > 0) {
@@ -322,7 +322,7 @@ export default function SongInput({ onAddSong }) {
           
           try {
             const itunesRes = await fetch(
-              `/api/music/search?term=${encodeURIComponent(cleanTitle + ' ' + artist)}&media=music&limit=1`
+              `/api/search?term=${encodeURIComponent(cleanTitle + ' ' + artist)}&media=music&limit=1`
             );
             const itunesData = await itunesRes.json();
             if (itunesData.results && itunesData.results.length > 0) {
@@ -418,7 +418,7 @@ export default function SongInput({ onAddSong }) {
     setLoading(true);
 
     fetch(
-      `/api/music/search?term=${encodeURIComponent(term)}&media=music&limit=5`
+      `/api/search?term=${encodeURIComponent(term)}&media=music&limit=5`
     )
       .then((res) => {
         if (!res.ok) throw new Error("API Network error");
@@ -520,7 +520,7 @@ export default function SongInput({ onAddSong }) {
         }
       } else {
         const response = await fetch(
-          `/api/music/search?term=${encodeURIComponent(inputValue)}&media=music&limit=1`
+          `/api/search?term=${encodeURIComponent(inputValue)}&media=music&limit=1`
         );
         const data = await response.json();
         if (data.results && data.results.length > 0) {
