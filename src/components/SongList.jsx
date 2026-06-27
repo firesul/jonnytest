@@ -12,12 +12,59 @@ export default function SongList({
 }) {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [isClearing, setIsClearing] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   const formatDuration = (seconds) => {
     if (!seconds || isNaN(seconds) || seconds === 0) return '--:--';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  // --- LOCAL PLAYLIST ANALYZER ENGINE ---
+  const totalSongs = songs.length;
+  
+  const totalSeconds = songs.reduce((sum, s) => sum + (s.duration || 0), 0);
+  const formatTotalDuration = (totalSecs) => {
+    if (!totalSecs) return '0 min';
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    if (hrs > 0) {
+      return `${hrs}h ${mins}m`;
+    }
+    return `${mins} min`;
+  };
+
+  // Genre accumulation
+  const genreCounts = {};
+  songs.forEach(s => {
+    if (s.genre) {
+      genreCounts[s.genre] = (genreCounts[s.genre] || 0) + 1;
+    }
+  });
+  const sortedGenres = Object.entries(genreCounts)
+    .map(([name, count]) => ({ name, count, percentage: Math.round((count / totalSongs) * 100) }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // Artist frequency mapping
+  const artistCounts = {};
+  songs.forEach(s => {
+    if (s.artist && s.artist !== 'Artista Desconocido' && s.artist !== 'Enlace externo') {
+      const cleanArtist = s.artist.trim();
+      artistCounts[cleanArtist] = (artistCounts[cleanArtist] || 0) + 1;
+    }
+  });
+  const sortedArtists = Object.entries(artistCounts)
+    .sort((a, b) => b[1] - a[1]);
+  const topArtist = sortedArtists.length > 0 ? sortedArtists[0][0] : 'Ninguno';
+
+  // Dynamic atmospheric generator based on mathematical splits
+  const generateLocalMoodSummary = () => {
+    if (totalSongs === 0) return '';
+    const artistText = sortedArtists.length > 0 ? ` con presencia destacada de **${sortedArtists[0][0]}**` : '';
+    const genreText = sortedGenres.length > 0 ? `El estilo dominante en la lista actualmente es **${sortedGenres[0].name}** (representando el **${sortedGenres[0].percentage}%** de las peticiones)` : 'La lista cuenta con estilos diversos';
+    return `${genreText}${artistText}. Puedes utilizar estas métricas para monitorear la tendencia musical de tu audiencia.`;
   };
 
   if (!songs || songs.length === 0) {
@@ -102,6 +149,87 @@ export default function SongList({
           </div>
         )}
       </div>
+
+      {/* Collapsible Stats Section (Admin Only) */}
+      {isAdmin && (
+        <div style={{ marginBottom: '20px' }}>
+          <button
+            onClick={() => setShowStats(!showStats)}
+            className="btn-secondary"
+            style={{ 
+              width: '100%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '8px',
+              background: 'rgba(255, 42, 59, 0.03)',
+              borderColor: 'var(--border-color)',
+              color: 'var(--text-main)',
+              padding: '12px'
+            }}
+            id="toggleStatsBtn"
+          >
+            {showStats ? 'Ocultar Estadísticas del Ambiente' : 'Ver Estadísticas del Ambiente (Analizador)'}
+          </button>
+
+          {showStats && (
+            <div className="glass-card" style={{ 
+              background: 'rgba(0, 0, 0, 0.25)', 
+              borderColor: 'var(--border-color)', 
+              padding: '20px', 
+              marginTop: '12px',
+              animation: 'fadeIn 0.3s ease-out'
+            }}>
+              {/* KPI Badges */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.03)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-technical)', textTransform: 'uppercase' }}>Canciones</div>
+                  <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-main)', marginTop: '4px' }}>{totalSongs}</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.03)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-technical)', textTransform: 'uppercase' }}>Duración Total</div>
+                  <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-main)', marginTop: '4px' }}>{formatTotalDuration(totalSeconds)}</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.03)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-technical)', textTransform: 'uppercase' }}>Top Artista</div>
+                  <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-main)', marginTop: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={topArtist}>{topArtist}</div>
+                </div>
+              </div>
+
+              {/* Mood Description */}
+              <div style={{ background: 'rgba(255, 42, 59, 0.05)', borderLeft: '3px solid var(--neon-mint)', padding: '14px', borderRadius: '0 6px 6px 0', fontSize: '13.5px', lineHeight: '1.5', color: 'var(--text-main)', marginBottom: '20px' }}>
+                <strong style={{ color: 'var(--neon-mint)', display: 'block', marginBottom: '4px', fontFamily: 'var(--font-technical)', fontSize: '11px', textTransform: 'uppercase' }}>Reporte de Clima Musical</strong>
+                <span dangerouslySetInnerHTML={{ __html: generateLocalMoodSummary().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+              </div>
+
+              {/* Genres Section */}
+              <div>
+                <h4 style={{ fontSize: '11px', textTransform: 'uppercase', fontFamily: 'var(--font-technical)', color: 'var(--text-muted)', marginBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>Top Géneros Solicitados</h4>
+                {sortedGenres.length === 0 ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>Sin datos de géneros</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {sortedGenres.map((g, idx) => (
+                      <div key={g.name} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', width: '20px' }}>#{idx + 1}</span>
+                        <div style={{ flexGrow: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
+                            <span style={{ fontWeight: '500' }}>{g.name}</span>
+                            <span style={{ color: 'var(--neon-mint)', fontWeight: '600' }}>{g.count} ({g.percentage}%)</span>
+                          </div>
+                          <div style={{ height: '4px', background: 'rgba(255,255,255,0.03)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${g.percentage}%`, background: 'var(--neon-mint)', borderRadius: '2px' }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div id="songsContainer">
         {songs.map((song) => {

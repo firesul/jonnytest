@@ -395,7 +395,7 @@ export default function SongInput({ onAddSong }) {
 
   // Perform search queries on the iTunes Search API using the debounced searchQuery state
   useEffect(() => {
-    if (searchQuery.trim().length < 3) {
+    if (searchQuery.trim().length < 2) {
       setSuggestions([]);
       setShowDropdown(false);
       return;

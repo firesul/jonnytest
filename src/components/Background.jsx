@@ -83,10 +83,11 @@ class PerlinNoise {
   }
 }
 
-export default function Background({ isPlaying = false, analyser = null }) {
+export default function Background({ isPlaying = false, analyser = null, isPaused = false }) {
   const canvasRef = useRef(null);
   const isPlayingRef = useRef(isPlaying);
   const analyserRef = useRef(analyser);
+  const isPausedRef = useRef(isPaused);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -95,6 +96,10 @@ export default function Background({ isPlaying = false, analyser = null }) {
   useEffect(() => {
     analyserRef.current = analyser;
   }, [analyser]);
+
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -106,10 +111,10 @@ export default function Background({ isPlaying = false, analyser = null }) {
 
     const noiseEngine = new PerlinNoise();
 
-    // 3D Grid Parameters (Dynamic density based on screen width for mobile performance)
+    // 3D Grid Parameters (Dynamic density optimized for mobile performance)
     const isMobile = window.innerWidth < 768;
-    const COLS = isMobile ? 45 : 85;
-    const ROWS = isMobile ? 35 : 60;
+    const COLS = isMobile ? 30 : 65;
+    const ROWS = isMobile ? 20 : 40;
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
@@ -124,6 +129,12 @@ export default function Background({ isPlaying = false, analyser = null }) {
 
     // Smooth 3D projection frame loop
     const render = () => {
+      // Pause animation if page is hidden or manually paused (liberates CPU resources on Admin view)
+      if (document.visibilityState === 'hidden' || isPausedRef.current) {
+        animationId = requestAnimationFrame(render);
+        return;
+      }
+
       animationId = requestAnimationFrame(render);
 
       // Pitch black screen clear
@@ -270,9 +281,12 @@ export default function Background({ isPlaying = false, analyser = null }) {
       }
 
       // 3. Draw Glowing Grid Intersections (Dots)
-      // Every 3 columns and 2 rows to match a constellation-topography hybrid mesh
-      for (let r = 0; r < ROWS; r += 2) {
-        for (let c = 1; c < COLS; c += 3) {
+      // Every 3 columns and 2 rows on desktop, every 4 columns and 3 rows on mobile
+      const colStep = isMobile ? 4 : 3;
+      const rowStep = isMobile ? 3 : 2;
+
+      for (let r = 0; r < ROWS; r += rowStep) {
+        for (let c = 1; c < COLS; c += colStep) {
           const pt = projectedGrid[r][c];
           if (!pt) continue;
 
@@ -296,14 +310,16 @@ export default function Background({ isPlaying = false, analyser = null }) {
           ctx.arc(pt.x, pt.y, dotSize, 0, Math.PI * 2);
           ctx.fill();
 
-          // Add surrounding glow aura to vertices
-          const glowCheck = treble > 0.02 || isPlayingRef.current;
-          if (depthFade > 0.3 && (heightFactor > 0.6 || glowCheck)) {
-            const glowOpacity = depthFade * 0.12 * (heightFactor * 0.5 + (treble > 0.02 ? treble * 0.8 : 0.2));
-            ctx.fillStyle = `rgba(255, 42, 59, ${glowOpacity})`;
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, dotSize * 3.5, 0, Math.PI * 2);
-            ctx.fill();
+          // Add surrounding glow aura to vertices (completely skip on mobile to save vector draw calls!)
+          if (!isMobile) {
+            const glowCheck = treble > 0.02 || isPlayingRef.current;
+            if (depthFade > 0.3 && (heightFactor > 0.6 || glowCheck)) {
+              const glowOpacity = depthFade * 0.12 * (heightFactor * 0.5 + (treble > 0.02 ? treble * 0.8 : 0.2));
+              ctx.fillStyle = `rgba(255, 42, 59, ${glowOpacity})`;
+              ctx.beginPath();
+              ctx.arc(pt.x, pt.y, dotSize * 3.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
         }
       }

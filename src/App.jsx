@@ -201,7 +201,7 @@ export default function App() {
   return (
     <div className="app-container">
       {/* 3D Topographic Relieve Canvas Background (Reacting to Web Audio API) */}
-      <Background isPlaying={isPlaying} analyser={analyser} />
+      <Background isPlaying={isPlaying} analyser={analyser} isPaused={isAdmin || isLoginOpen} />
 
       {/* Navigation / Header */}
       <nav className="navbar" id="mainNavbar">
